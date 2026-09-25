@@ -1,0 +1,58 @@
+{
+  "name": "@descent-vtt/spec-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The shared, pure core of the spec-* tools: POSIX paths, glob dialects with a non-backtracking matcher and intersection, a Markdown structure scanner, front matter, and JSON-RPC framing.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    "./path": {
+      "types": "./dist/path/index.d.ts",
+      "default": "./dist/path/index.js"
+    },
+    "./text": {
+      "types": "./dist/text/index.d.ts",
+      "default": "./dist/text/index.js"
+    },
+    "./pattern": {
+      "types": "./dist/pattern/index.d.ts",
+      "default": "./dist/pattern/index.js"
+    },
+    "./jsonrpc": {
+      "types": "./dist/jsonrpc/index.d.ts",
+      "default": "./dist/jsonrpc/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:mutation": "stryker run",
+    "vendor": "node scripts/vendor.mjs",
+    "differential": "node scripts/differential.mjs"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
+    "@types/node": "^22.20.4",
+    "@vitest/coverage-v8": "^4.1.11",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DescentVTT/spec-core.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DescentVTT/spec-core/issues"
+  },
+  "homepage": "https://github.com/DescentVTT/spec-core#readme"
+}

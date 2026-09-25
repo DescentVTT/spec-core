@@ -1,0 +1,6 @@
+# Normalise to LF in the repository and on checkout.
+#
+# The sources are copied byte for byte into the sibling tools and verified by
+# hash there. A CRLF checkout on one side and LF on the other would make an
+# unchanged file look edited.
+* text=auto eol=lf
