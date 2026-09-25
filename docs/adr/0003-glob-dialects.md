@@ -70,6 +70,28 @@ are tried at the boundaries of every set in play, which meets every
 combination of answers those sets can give, so `none` is exact. The set
 questions are defined for case-sensitive globs only, which is every scope.
 
+Also shared, found when the three engines were run beside this one
+(`tests/pattern/differential.test.ts`, below):
+
+- A `.` segment names nothing and is dropped; a pattern left naming no path,
+  or climbing out of its root with `..`, is an error.
+- A directory's contents do not include the directory: `dir/`, `dir/**`, and
+  a literal read as a directory all match what is beneath it, never `dir`
+  itself. A trailing slash always means contents, glob syntax or not.
+- Braces expand before anything else is decided, so `src/{a.ts,lib}` is two
+  literals, each read as a file, a directory or either, as a literal without
+  braces would be.
+
+## How the differences were found
+
+`tests/pattern/differential.test.ts` runs each tool's matcher, copied
+verbatim from its main branch into `tests/pattern/reference/`, beside the
+dialect that replaces it, over 400 patterns - generated, and the awkward ones
+written by hand - against every path of a small alphabet up to three
+segments. Every answer that differs must fall into a named category, or the
+test fails and prints it. The categories are the changes below, and nothing
+else differs.
+
 ## Consequences for each tool
 
 Adopting the core changes what users see, and each tool's changelog says so:
