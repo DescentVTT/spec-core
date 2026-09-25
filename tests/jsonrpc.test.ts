@@ -95,11 +95,12 @@ describe('the legacy era', () => {
     const bare = createMcpServer({ name: 'n', version: '0', instructions: '' });
     const reply = await bare({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} });
     expect(result(reply)['capabilities']).toEqual({});
-    expect(result(await bare({ jsonrpc: '2.0', id: 2, method: 'resources/list' }))).toEqual({ resources: [] });
-    expect(result(await bare({ jsonrpc: '2.0', id: 3, method: 'resources/templates/list' }))).toEqual({ resourceTemplates: [] });
-    expect(failure(await bare({ jsonrpc: '2.0', id: 4, method: 'resources/read', params: { uri: 'x' } })).code).toBe(
-      LEGACY_RESOURCE_NOT_FOUND,
-    );
+    // A capability it did not declare answers as any unknown method does.
+    for (const method of ['tools/list', 'tools/call', 'resources/list', 'resources/templates/list', 'resources/read', 'prompts/list', 'prompts/get']) {
+      expect(failure(await bare({ jsonrpc: '2.0', id: 2, method, params: { name: 'x', uri: 'x' } }))).toEqual({ code: METHOD_NOT_FOUND, message: 'Method not found' });
+    }
+    // A method that merely starts like one is still unknown.
+    expect(failure(await bare({ jsonrpc: '2.0', id: 3, method: 'toolsy' })).code).toBe(METHOD_NOT_FOUND);
   });
 
   it('answers ping, and refuses server/discover, which is modern only', async () => {
@@ -408,7 +409,8 @@ describe('serving lines', () => {
 describe('unknown arguments', () => {
   it('names one, several, and a tool that takes none', () => {
     expect(unknownArguments({ a: 1 }, ['b'])?.text).toBe('Unknown argument "a"; this tool takes b.');
-    expect(unknownArguments({ a: 1, c: 2 }, ['b', 'd'])?.text).toBe('Unknown arguments "a", "c"; this tool takes b, d.');
+    expect(unknownArguments({ a: 1, c: 2 }, ['b', 'd'])?.text).toBe('Unknown arguments "a", "c"; this tool takes b and d.');
+    expect(unknownArguments({ a: 1 }, ['b', 'c', 'd'])?.text).toBe('Unknown argument "a"; this tool takes b, c and d.');
     expect(unknownArguments({ a: 1 }, [])?.text).toBe('Unknown argument "a"; this tool takes no arguments.');
     expect(unknownArguments({ b: 1 }, ['b'])).toBeUndefined();
   });

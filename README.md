@@ -55,7 +55,7 @@ What the family shares, whatever you install ([ADR-0005](docs/adr/0005-the-famil
 - **False positives cost more than misses**, and every finding says what to do
   next.
 
-Why five tools and not the eleven once planned: [ADR-0006](docs/adr/0006-five-tools-not-eleven.md).
+Why five tools and not the eleven once planned: [ADR-0006](docs/adr/0006-five-tools-not-eleven.md). How to adopt them, from one tool to the whole loop, and how to configure a repository where agents write most of the code: [docs/adopting.md](docs/adopting.md).
 
 ## Modules
 
