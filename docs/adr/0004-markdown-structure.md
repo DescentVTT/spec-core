@@ -73,6 +73,17 @@ offset and line terminator:
 | `prose` | front matter, comments | "does this section say anything?" |
 | `directives` | front matter, code | "what does `<!-- @assert ... -->` say?" |
 
+**What a caller does not read is not made.** Links, list items and the
+`directives` mask are made the first time each is read, and kept; the
+`structure` and `prose` masks, headings and tables are made with the scan,
+since headings are read from both masks and every tool reads headings.
+*Amended 2026-09-26*: all of it was made for every document, and a spec-guard
+query, which reads none of the three, spent most of its time on them - 23 ms
+a query against the 20 ms spec-guard's ADR-0012 allows. Over the family's own
+Markdown, scanning took 28% less for what spec-guard reads and 34% less for
+what spec-harness reads, 5% less for spec-graph, which reads everything, with
+every answer identical.
+
 ## Open questions
 
 - **Slugs.** `slugify` keeps spec-graph's results, which drop `_` where

@@ -414,3 +414,28 @@ describe('masks', () => {
     expect(linesOf(s, 'directives')).toEqual(['a    ', 'c', '']);
   });
 });
+
+describe('what is made only when it is read', () => {
+  const text = doc('# T', '', '- [ ] a [link](x.md) `code` <!-- c -->', '', '| a |', '| - |');
+
+  it('makes links, list items and the directives mask once, the first time each is read', () => {
+    const s = scanMarkdown(text);
+    expect(s.links).toBe(s.links);
+    expect(s.listItems).toBe(s.listItems);
+    expect(s.masks.directives).toBe(s.masks.directives);
+    expect(s.links.map((l) => l.target)).toEqual(['x.md']);
+    expect(s.listItems.map((i) => i.checkbox)).toEqual([' ']);
+    expect(s.masks.directives).toBe(`# T\n\n- [ ] a [link](x.md) ${' '.repeat(6)} <!-- c -->\n\n| a |\n| - |`);
+  });
+
+  it('answers the same whichever is read first, and reads as a plain object does', () => {
+    const first = scanMarkdown(text);
+    const later = scanMarkdown(text);
+    void later.headings;
+    expect(later.links).toEqual(first.links);
+    expect(later.listItems).toEqual(first.listItems);
+    expect(Object.keys(first)).toEqual(expect.arrayContaining(['links', 'listItems', 'masks']));
+    expect(Object.keys(first.masks)).toEqual(['structure', 'prose', 'directives']);
+    expect(JSON.parse(JSON.stringify(first.links))).toEqual(first.links);
+  });
+});

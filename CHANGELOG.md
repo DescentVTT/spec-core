@@ -12,6 +12,9 @@ What the tools that copied cbe2223 see when they copy again.
 - `markdown`: an image inside a link's text is read, after the link - a badge
   wrapped in a link, `[![build](badge.svg)](actions)`, gives both
   destinations, where the image went unread (ADR-0004).
+- `markdown`: links, list items and the `directives` mask are made the
+  first time each is read. A caller reading none of them - spec-guard's
+  query - scans 28% faster; every answer is identical (ADR-0004).
 
 ### Added
 
