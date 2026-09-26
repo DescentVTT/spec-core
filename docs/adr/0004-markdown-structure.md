@@ -28,12 +28,17 @@ scanner everywhere else.** One pass, offsets throughout, no AST, no rendering.
 
 Exact:
 
-- Fenced code: ``` or ~~~, three or more; an opener at any indentation outside
-  indented code (list-nested fences are common); a backtick info string may not
-  contain a backtick; a closer is the same character, at least as long, with
-  nothing after it but whitespace; an unclosed fence runs to the end.
-- Indented code outside lists, after a blank line, never interrupting a
-  paragraph.
+- Fenced code: ``` or ~~~, three or more; an opener up to three columns past
+  the text of the list item it is in, or past the margin outside a list
+  (list-nested fences are common); a backtick info string may not contain a
+  backtick; a closer is the same character, at least as long, with nothing
+  after it but whitespace; an unclosed fence runs to the end. A fence line
+  deeper than that is indented code or a paragraph's text, so a lone one in an
+  item's example no longer hides the rest of the document.
+- Indented code four columns past the text of the list item it is in, or past
+  the margin outside a list, after a blank line, never interrupting a
+  paragraph. An item's text starts past its marker and the one to four spaces
+  after it; a line left of that after a blank line is outside the item.
 - `<script>`, `<pre>`, `<style>`, `<textarea>` blocks, whose content is not
   Markdown.
 - Code spans and HTML comments resolved **left to right in one pass**:

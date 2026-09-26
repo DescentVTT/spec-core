@@ -11,7 +11,9 @@
  * keeps `VENDOR.json` beside the copies: the commit they came from and the
  * SHA-256 of every file. The tool's own test recomputes the hashes, so an edit
  * made to a copy in place fails that tool's build rather than drifting from
- * every other copy. docs/adr/0001-one-core-copied-by-hash.md.
+ * every other copy. docs/adr/0001-one-core-copied-by-hash.md. spec-core's
+ * LICENSE goes beside them too: the tool's package carries the compiled
+ * copies, so it ships that notice.
  *
  * Nothing here runs at install or build time in any tool; it is run by a
  * person, and its result is a diff that person commits.
@@ -115,6 +117,7 @@ function vendor(options) {
   record.source = SOURCE;
   record.commit = dirty ? null : sha;
   const sorted = Object.fromEntries(Object.entries(record.modules).sort(([a], [b]) => a.localeCompare(b)));
+  writeFileSync(join(target, 'LICENSE'), readFileSync(join(ROOT, 'LICENSE')));
   writeFileSync(join(target, 'VENDOR.json'), `${JSON.stringify({ ...record, modules: sorted }, null, 2)}\n`);
   writeFileSync(
     join(target, 'README.md'),
@@ -125,7 +128,8 @@ function vendor(options) {
       `[spec-core](${SOURCE}), byte for byte. Do not edit them here: change`,
       'spec-core, then run `node scripts/vendor.mjs --into <this tool>` there.',
       '`VENDOR.json` records the commit and the SHA-256 of every file, and this',
-      "tool's tests fail when a file no longer matches its hash.",
+      "tool's tests fail when a file no longer matches its hash. `LICENSE` is",
+      "spec-core's, and ships in this tool's package with the compiled copies.",
       '',
     ].join('\n'),
   );
@@ -136,6 +140,7 @@ function check(options) {
   const target = join(resolve(options.check), options.dir);
   const record = readVendor(target);
   const problems = [];
+  if (!existsSync(join(target, 'LICENSE'))) problems.push('LICENSE is missing; the copies ship under it');
   for (const [module, { files }] of Object.entries(record.modules)) {
     for (const [name, hash] of Object.entries(files)) {
       const copy = join(target, module, name);

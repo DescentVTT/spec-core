@@ -268,6 +268,7 @@ describe('lists', () => {
     expect(why('---\nk:\n  sub: 1\n---')).toBe('nested mappings are not supported; flatten the key');
     expect(why('---\nk:\n  folded text\n---')).toBe('the value continues on the next line; keep it on one line, or quote it');
     expect(why('---\nk: first\n  second\n---')).toBe('the value continues on the next line; keep it on one line, or quote it');
+    expect(why('---\nk:\n  []\n---')).toBe('an inline list starts on the line after its key; write it after the colon');
     expect(why('---\nk:\n  - a\n    - b\n---')).toBe('a list item is continued or nested; keep each item on one line');
     expect(why('---\nk:\n  - a\n  more\n---')).toBe('a list item is continued or nested; keep each item on one line');
     expect(why('---\nk:\n  -\n---')).toBe('a list item is empty');

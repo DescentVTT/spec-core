@@ -40,8 +40,12 @@ Shared by all three:
   segment, so `docs/**` is the directory's contents and not the directory.
   This is `.gitignore`'s reading, and it is what makes a collision witness a
   file: `docs/adr/**` against itself yields `docs/adr/x`, never `docs/adr`.
-  Elsewhere `**` is `*` (`**.md` is `*.md`), as in `.gitignore`, bash and
-  minimatch.
+- `**` inside a name (`docs/**.md`, `a**b`) is an error. `.gitignore`, bash
+  and minimatch read it as `*`; the tools this replaces read it as any depth,
+  as one level, and as ripgrep does. Taking one of those readings quietly
+  would narrow some scope that used to reach nested files, so the pattern is
+  refused with the two ways to say what was meant: `docs/**/*.md` or
+  `docs/*.md`.
 - `*`, `?` and classes never match `/`; `*` matches a leading dot.
 - Characters are code points.
 - **Case is required**, `caseSensitive: true | false`, with no default. The
@@ -50,7 +54,12 @@ Shared by all three:
 - Malformed is an error in every dialect: an unclosed `[` or `{`, an extended
   glob, a `..`, a `\` before a letter (a Windows separator typed by mistake,
   unless the caller asks for `backslash: 'separator'`). A lone `}` is a literal:
-  it cannot mean anything else.
+  it cannot mean anything else. An extended glob is a group holding a `|`
+  after `*`, `?`, `+`, `@` or `!`, which is what one is written for; without
+  a `|`, `C++(notes).md` and `*(2017).md` are names with parentheses in them,
+  as ripgrep and `.gitignore` read them, and as the tools did before.
+- The empty pattern is an error: it names nothing, and a list holding one is
+  more likely a mistake in a configuration file than a wish to match nothing.
 - `!` is a list concern, not a pattern's: `parseGlobList` reads entries in
   order, last match wins, as `.gitignore` does.
 
@@ -97,13 +106,13 @@ else differs.
 Adopting the core changes what users see, and each tool's changelog says so:
 
 - **spec-graph**: path globs stop folding case on Windows. `**` inside a
-  segment stops crossing directories. An unclosed `[` becomes an error.
+  segment becomes an error. An unclosed `[` becomes an error.
 - **spec-guard**: the 28-second match is gone. `**` inside a segment, an
   unclosed `[` or `{`, and an extended glob change from literal or regex
-  readings to the shared ones and to errors, which the directive reports as a
+  readings to errors, which the directive reports as a
   directive error rather than a rule that silently matches nothing.
 - **spec-brief**: a trailing `/**` no longer matches the directory itself, so
-  a collision witness is a file. A literal path's reading is supplied by the
+  a collision witness is a file. `**` inside a name becomes an error. A literal path's reading is supplied by the
   tree (ADR-0005 there), and protected paths can be subtracted from a scope
   exactly, so "all of `src/` except the schema" can be written.
 

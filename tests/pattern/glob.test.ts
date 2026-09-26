@@ -49,8 +49,6 @@ describe('the syntax every dialect shares', () => {
     ['src/\\*.ts', 'src/*.ts', true],
     ['src/\\*.ts', 'src/a.ts', false],
     ['src/a}.ts', 'src/a}.ts', true],
-    ['src/**.ts', 'src/a.ts', true],
-    ['src/**.ts', 'src/deep/a.ts', false],
     ['./src/*.ts', 'src/a.ts', true],
     ['src//a.ts', 'src/a.ts', true],
     ['src/./a.ts', 'src/a.ts', true],
@@ -101,12 +99,18 @@ describe('the syntax every dialect shares', () => {
     ['', 'the pattern is empty'],
     ['   ', 'the pattern is empty'],
     ['!src', 'a negated pattern is a list entry, not a glob; narrow the positive pattern'],
-    ['src/+(a|b)', 'extended globs such as "+(a|b)" are not supported'],
-    ['src/@(a)', 'extended globs such as "+(a|b)" are not supported'],
+    ['src/+(a|b)', 'extended globs such as "+(a|b)" are not supported: write alternatives as "{a,b}", and a literal parenthesis as "[(]"'],
+    ['src/*(x|y).md', 'extended globs such as "+(a|b)" are not supported: write alternatives as "{a,b}", and a literal parenthesis as "[(]"'],
+    ['src/@(a|b|c)', 'extended globs such as "+(a|b)" are not supported: write alternatives as "{a,b}", and a literal parenthesis as "[(]"'],
+    ['!(a|b)/c', 'a negated pattern is a list entry, not a glob; narrow the positive pattern'],
     ['src/[ab', 'a "[" is never closed'],
     ['src/[a/b]', 'a "[" is never closed'],
     ['src/{a,b', 'a "{" is never closed'],
     ['src/[z-a]', 'the range "z-a" runs backwards'],
+    ['docs/**.md', '"**" means any number of directories only as a whole segment: write "docs/**/*.md" for any depth, or "*.md" for one level'],
+    ['**.ts', '"**" means any number of directories only as a whole segment: write "docs/**/*.md" for any depth, or "*.md" for one level'],
+    ['a**b/c', '"**" means any number of directories only as a whole segment: write "docs/**/*.md" for any depth, or "*.md" for one level'],
+    ['src/***', '"**" means any number of directories only as a whole segment: write "docs/**/*.md" for any depth, or "*.md" for one level'],
     ['../src', 'a pattern cannot climb out of its root with ".."'],
     ['src\\app', '"\\" escapes glob syntax; separate directories with "/"'],
     ['src\\', '"\\" escapes glob syntax; separate directories with "/"'],
@@ -114,6 +118,14 @@ describe('the syntax every dialect shares', () => {
     ['/', 'the pattern names the root itself, not a path under it'],
   ])('refuses %j: %s', (pattern, reason) => {
     expect(error(pattern)).toBe(reason);
+  });
+
+  it('reads parentheses without a bar in them as characters of a name', () => {
+    expect(matches('docs/C++(notes).md', 'docs/C++(notes).md')).toBe(true);
+    expect(matches('docs/team@(home).md', 'docs/team@(home).md')).toBe(true);
+    expect(matches('books/*(2017).md', 'books/Dune (2017).md')).toBe(true);
+    expect(matches('books/*(2017).md', 'books/Dune.md')).toBe(false);
+    expect(matches('books/*[(]2017).md', 'books/x(2017).md')).toBe(true);
   });
 
   it('refuses a brace explosion', () => {

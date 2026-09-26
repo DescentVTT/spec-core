@@ -141,8 +141,20 @@ describe('fenced code', () => {
     expect(s.blocks).toMatchObject([{ kind: 'fenced', line: 1, endLine: 3, closed: false }]);
   });
 
-  it('opens at any indentation, so a fence in a list item is one', () => {
-    expect(codeLines(doc('- item', '', '      ```', '      # x', '      ```', '# after'))).toEqual([3, 4, 5]);
+  it('opens inside a list item, up to three columns past its text', () => {
+    expect(codeLines(doc('- item', '', '   ```', '   # x', '   ```', '# after'))).toEqual([3, 4, 5]);
+    expect(codeLines(doc('1. a', '   - b', '', '        ```', '        # x', '        ```', '# after'))).toEqual([4, 5, 6]);
+  });
+
+  it('is not opened four columns deep, where the line is code or text', () => {
+    // A lone fence line in an item's indented code is code, and hides nothing.
+    const listed = doc('- item', '', '      ```', '', '# after');
+    expect(codeLines(listed)).toEqual([3]);
+    expect(scanMarkdown(listed).headings.map((h) => h.text)).toEqual(['after']);
+    // After a paragraph it is the paragraph's text.
+    const continued = doc('para', '    ```', '', '# after');
+    expect(codeLines(continued)).toEqual([]);
+    expect(scanMarkdown(continued).headings.map((h) => h.text)).toEqual(['after']);
   });
 
   it('closes only on a fence of its character and at least its length', () => {
@@ -195,6 +207,18 @@ describe('indented code', () => {
     expect(codeLines(doc('para', '    not code'))).toEqual([]);
     expect(codeLines(doc('    code'))).toEqual([1]);
     expect(codeLines(doc('---', 'a: 1', '---', '    code'))).toEqual([4]);
+  });
+
+  it('is read inside a list item four columns past its text, which is text before that', () => {
+    expect(codeLines(doc('- item', '', '      code', '', '  text'))).toEqual([3]);
+    expect(codeLines(doc('10. item', '', '        code'))).toEqual([3]);
+    expect(codeLines(doc('10. item', '', '       text'))).toEqual([]);
+    // Nested: the innermost item sets the margin, and a line left of it leaves it.
+    expect(codeLines(doc('- a', '  - b', '', '        code'))).toEqual([4]);
+    expect(codeLines(doc('- a', '  - b', '', '      text'))).toEqual([]);
+    expect(codeLines(doc('- a', '  - b', '', '  back in a', '', '      code'))).toEqual([6]);
+    // A marker with nothing after it puts the item's text one column past it.
+    expect(codeLines(doc('-', '', '      code'))).toEqual([3]);
   });
 
   it('is not read inside a list, where four columns are a continuation', () => {

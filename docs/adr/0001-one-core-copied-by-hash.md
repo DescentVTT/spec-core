@@ -53,7 +53,9 @@ jsonrpc   MCP over JSON-RPC 2.0, both protocol eras, line framing
   spec-graph 17, spec-guard deliberately 4, and each has its reason.
 - **Copied, not depended on.** `scripts/vendor.mjs --into <tool> --modules …`
   copies the sources into `src/vendor/spec-core/` and writes `VENDOR.json`
-  with the commit and the SHA-256 of every file. Each tool adds one test that
+  with the commit and the SHA-256 of every file, and spec-core's `LICENSE`,
+  which each tool lists in its package `files`: its `dist` carries the
+  compiled copies, so it ships their notice. Each tool adds one test that
   recomputes the hashes. The tools keep `dependencies: {}` and keep their
   relative-imports test; nothing new enters their toolchains; and every change
   to the core arrives in a tool as a diff someone reviews.

@@ -39,8 +39,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:mutation": "stryker run",
-    "vendor": "node scripts/vendor.mjs",
-    "differential": "node scripts/differential.mjs"
+    "vendor": "node scripts/vendor.mjs"
   },
   "dependencies": {},
   "devDependencies": {

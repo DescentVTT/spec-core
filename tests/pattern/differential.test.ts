@@ -79,7 +79,7 @@ function report(rows: readonly Difference[]): string {
     .join('\n');
 }
 
-/** `**` touching anything but a separator or an edge: a star in gitignore's reading. */
+/** `**` touching anything but a separator or an edge: refused, where the old engines each read it their own way. */
 const GLOBSTAR_IN_SEGMENT = /(?:[^/{,]\*\*|\*\*[^/},])/;
 const NEGATED_CLASS = /\[[!^]/;
 const UNCLOSED_CLASS = /\[(?![^\]/]*\])/;
@@ -98,6 +98,7 @@ const WHOLE_GLOBSTAR = /(?:^|\/)\*\*(?:\/|$)/;
  * directory.
  */
 function shared(pattern: string, legacy: Answer, core: Answer): Category | null {
+  if (core === 'error' && GLOBSTAR_IN_SEGMENT.test(pattern)) return 'a globstar inside a name is refused';
   if (core === 'error' && (DOT_SEGMENT.test(pattern) || CLIMB.test(pattern))) return 'a pattern that names no path, or climbs out, is an error';
   if (DOT_SEGMENT.test(pattern)) return 'a . segment names nothing';
   if (CONTENTS.test(pattern) && legacy === true && core === false) return "a directory's contents do not include the directory";
@@ -189,7 +190,7 @@ describe('spec-graph, against the path dialect', () => {
       const common = shared(pattern, legacy, core);
       if (common !== null) return common;
       if (legacy !== 'error' && core === 'error' && UNCLOSED_CLASS.test(pattern)) return 'an unclosed class is an error';
-      if (GLOBSTAR_IN_SEGMENT.test(pattern)) return 'a globstar inside a segment is a star';
+      if (GLOBSTAR_IN_SEGMENT.test(pattern) && core === 'error') return 'a globstar inside a name is refused';
       // spec-graph read any pattern with braces as a glob; spec-brief, and now
       // every tool, reads each expanded alternative with no glob syntax as a
       // literal, which may name a directory.
@@ -202,7 +203,7 @@ describe('spec-graph, against the path dialect', () => {
       return null;
     });
     expect(result.unexplained, `unexplained:\n${report(result.unexplained)}`).toEqual([]);
-    expect(result.categories.get('a globstar inside a segment is a star')).toBeGreaterThan(0);
+    expect(result.categories.get('a globstar inside a name is refused')).toBeGreaterThan(0);
   });
 });
 
@@ -210,7 +211,7 @@ function guardExplain(pattern: string, path: string, legacy: Answer, core: Answe
   const common = shared(pattern, legacy, core);
   if (common !== null) return common;
   if (core === 'error' && (UNCLOSED_CLASS.test(pattern) || /\{/.test(pattern))) return 'malformed is an error';
-  if (GLOBSTAR_IN_SEGMENT.test(pattern)) return 'a globstar inside a segment is a star';
+  if (GLOBSTAR_IN_SEGMENT.test(pattern) && core === 'error') return 'a globstar inside a name is refused';
   if (NESTED_BRACES.test(pattern) || CLASS_IN_BRACES.test(pattern)) return 'braces nest';
   if (NEGATED_CLASS.test(pattern) && path.includes('/')) return 'a class never matches a separator';
   if (WHOLE_GLOBSTAR.test(pattern) && legacy !== core) return 'a globstar matches whole segments';

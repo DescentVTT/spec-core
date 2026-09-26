@@ -14,7 +14,8 @@ copies a module names the spec-core commit in its own changelog.
   compiled to one non-backtracking automaton; `globWitness` (a shortest path
   every scope matches and no protected scope does, or a proof there is none);
   `globCovers`; `parseGlobList` with `!` entries; the regex matcher from
-  spec-graph as `compileRegex`.
+  spec-graph as `compileRegex`. `**` inside a name is refused rather than
+  read one of the three ways the tools read it (ADR-0003).
 - `markdown`: one pass exact about code and comments per CommonMark, three
   masks, headings, list items, links, tables, front matter.
 - `jsonrpc`: MCP over JSON-RPC 2.0 for both protocol eras, with tools,

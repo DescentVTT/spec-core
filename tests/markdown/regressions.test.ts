@@ -77,7 +77,9 @@ describe('code fences spec-guard read wrongly', () => {
     const text = doc('- Example:', '', '      ~~~md', `      ${directive}`, '      ~~~');
     expect(maskCode(text).includes('@assert-absence')).toBe(true);
     const s = scanMarkdown(text);
-    expect(s.blocks).toMatchObject([{ kind: 'fenced', line: 3, endLine: 5 }]);
+    // Six columns in an item whose text starts at two are indented code, as
+    // CommonMark reads them; either way the example is code.
+    expect(s.blocks).toMatchObject([{ kind: 'indented', line: 3, endLine: 5 }]);
     expect(s.masks.directives.includes('@assert-absence')).toBe(false);
   });
 
