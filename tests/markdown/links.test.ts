@@ -81,11 +81,16 @@ describe('inline links', () => {
   it('reads no link but an image inside a link\'s text, and none past its `]`', () => {
     // CommonMark's innermost link would win here; the outer is kept, as before.
     expect(brief('[foo [bar](/uri)](/uri2)').map((l) => l[3])).toEqual(['/uri2']);
-    // An image whose destination runs past the text's `]` is not in the text.
+    // An image whose destination runs past the text's `]` is not in the text,
+    // whether or not it closes: in the second, `u](d)v` would be its
+    // destination.
     expect(brief('[![a](b](c)').map((l) => l[3])).toEqual(['c']);
+    expect(brief('[![i](u](d)v)').map((l) => l[3])).toEqual(['d']);
     // An image's own text is alt text: nothing in it is followed.
     expect(brief('![outer ![inner](i.png)](o.png)').map((l) => l[3])).toEqual(['o.png']);
     expect(brief('[[wiki ![x](y.png)]]').map((l) => l[0])).toEqual(['wiki']);
+    // A wiki embed is not an image CommonMark renders, so it is not read there.
+    expect(brief('[![[x.png]]](y)')).toEqual([['inline', false, '![[x.png]]', 'y', 'y']]);
   });
 
   it('finds a link inside brackets that are not one, and keeps nested brackets in its text', () => {

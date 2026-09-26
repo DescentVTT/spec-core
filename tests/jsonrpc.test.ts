@@ -406,6 +406,44 @@ describe('serving lines', () => {
   });
 });
 
+describe('what the specifications fix', () => {
+  // Written out, not read from the constants: a client knows the
+  // specification, not this module.
+  it('answers with the error codes of JSON-RPC 2.0', async () => {
+    const handle = server();
+    const broken = server({ resources: { list: () => Promise.reject(new Error('disk')), read: async () => null } });
+    const replies = [
+      await handle(null),
+      await handle({ jsonrpc: '2.0', id: 1, method: 'nope' }),
+      await handle({ jsonrpc: '2.0', id: 1, method: 'ping', params: [1] }),
+      await broken({ jsonrpc: '2.0', id: 1, method: 'resources/list' }),
+    ];
+    expect(replies.map((reply) => failure(reply).code)).toEqual([-32600, -32601, -32602, -32603]);
+    const input = source();
+    const written: string[] = [];
+    const done = serveLines(input, (line) => written.push(line), handle);
+    input.push('not json\n');
+    input.end();
+    await done;
+    expect(written).toEqual(['{"jsonrpc":"2.0","error":{"code":-32700,"message":"Parse error"}}']);
+  });
+
+  it('reads and writes the _meta keys of MCP 2026-07-28', async () => {
+    const meta = {
+      'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+      'io.modelcontextprotocol/clientCapabilities': {},
+      'io.modelcontextprotocol/clientInfo': { name: 'client', version: '1' },
+    };
+    expect(result(await call('tools/list', { _meta: meta }))['_meta']).toEqual({
+      'io.modelcontextprotocol/serverInfo': { name: 'demo', version: '1.2.3' },
+    });
+    expect(failure(await call('tools/list', { _meta: { ...meta, 'io.modelcontextprotocol/clientInfo': { name: 'client' } } }))).toEqual({
+      code: -32602,
+      message: 'Invalid _meta envelope: io.modelcontextprotocol/clientInfo: expected an object with a string name and version',
+    });
+  });
+});
+
 describe('unknown arguments', () => {
   it('names one, several, and a tool that takes none', () => {
     expect(unknownArguments({ a: 1 }, ['b'])?.text).toBe('Unknown argument "a"; this tool takes b.');

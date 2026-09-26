@@ -219,6 +219,20 @@ describe('indented code', () => {
     expect(codeLines(doc('- a', '  - b', '', '  back in a', '', '      code'))).toEqual([6]);
     // A marker with nothing after it puts the item's text one column past it.
     expect(codeLines(doc('-', '', '      code'))).toEqual([3]);
+    expect(codeLines(doc('-', '  item', '', '     text'))).toEqual([]);
+    // Up to four spaces after a marker belong to it; of five or more, one
+    // does, and the rest of the line is code.
+    expect(codeLines(doc('-    item', '', '      text'))).toEqual([]);
+    expect(codeLines(doc('-    item', '', '         code'))).toEqual([3]);
+    expect(scanMarkdown(doc('-     code', '', '      code')).lines[2]?.code).toBe(true);
+  });
+
+  it('is measured from the items a marker leaves open', () => {
+    // A marker at its item's text nests, and the item is open after the nested one.
+    expect(codeLines(doc('- a', '  - b', '', '  back in a', '', '    text'))).toEqual([]);
+    // One left of it closes the item and starts a sibling, and a line left of
+    // the sibling's text after a blank line is in neither.
+    expect(codeLines(doc('- a', ' - b', '', '  outside', '', '    code'))).toEqual([6]);
   });
 
   it('is not read inside a list, where four columns are a continuation', () => {

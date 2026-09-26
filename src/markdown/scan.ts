@@ -261,6 +261,9 @@ function scanCore(text: string, index: LineIndex, frontLines: number): Core {
     if (seen !== null && from < seen.end && (seen.last.get(length) ?? -1) < from) return undefined;
     const stop = stops.get(line) as number;
     const last = new Map<number, number>();
+    // A run ends at `from`, so `from` is past 0 and holds no backtick. A
+    // search that stopped at `from` itself would record a run of length
+    // zero, which no opener asks for, and `at > 0` tests what `at >= 0` does.
     let at = text.indexOf('`', from);
     while (at >= 0 && at < stop) {
       const run = at;
@@ -352,6 +355,8 @@ function scanCore(text: string, index: LineIndex, frontLines: number): Core {
   let indented: Mutable<Block> | null = null;
   let previousBlank = true;
   // The content column of each list item open around the line, innermost last.
+  // Each loop that pops it tests its length first, which says what is meant;
+  // without the test it stops all the same, `undefined > indent` being false.
   const items: number[] = [];
   let pos = 0;
 
@@ -474,7 +479,8 @@ function scanCore(text: string, index: LineIndex, frontLines: number): Core {
 /**
  * The column an item's text starts at: past its marker and the one to four
  * spaces after it. With none, or five or more, the text starts one column
- * past the marker, and anything further is indented code.
+ * past the marker, and anything further is indented code. At one space both
+ * arms give one, so `spaces > 1` would read the same as `spaces >= 1`.
  */
 function itemColumn(indent: number, marker: ListMarker): number {
   const spaces = marker.width - marker.marker.length;

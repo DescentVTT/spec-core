@@ -346,6 +346,10 @@ function readBrackets(layout: Layout, definitions: ReadonlyMap<string, Definitio
     let at = from;
     // Inside a link's text, up to its `]`, where CommonMark reads an image -
     // a badge wrapped in a link - but no other link; then on past the link.
+    // `textEnd` is -1 or a `]` that closes a `[`, so never 0, and the `]` is
+    // read as no link. Leaving one step later, past it, resumes at the same
+    // place, or ends the paragraph where a shortcut link ended it anyway: the
+    // test below reads the same with `textEnd > 0` or `at > textEnd`.
     let textEnd = -1;
     let resume = -1;
     while (at < to) {
