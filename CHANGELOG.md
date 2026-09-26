@@ -33,3 +33,8 @@ What the tools that copied cbe2223 see when they copy again.
   resources and prompts, and line framing with cancellation.
 - `scripts/vendor.mjs`: copy modules into a tool with a SHA-256 per file, and
   check a tool's copy.
+- The mutation gate: `break` at 94, under the first two full sweeps (95.37%
+  at cbe2223, 94.89% at 8840d36). Tests pin what the second sweep found
+  unpinned - list item columns, the items a marker leaves open, images in a
+  link's text, the JSON-RPC error codes and `_meta` keys - and the
+  equivalent mutants carry comments (ADR-0007).

@@ -32,6 +32,9 @@ export default {
   // seconds is a loop bound that no longer ends.
   timeoutMS: 5000,
 
-  // The gate is set below the first full measurement and moves up with it.
-  thresholds: { high: 97, low: 93, break: null },
+  // Measured 95.37% at cbe2223 and 94.89% at 8840d36, apart by little more
+  // than the mutants that timed out in one sweep and survived the other. The
+  // break sits under the last measurement by more than that swing, and moves
+  // up with the measurement, never down (docs/adr/0007-verification.md).
+  thresholds: { high: 97, low: 93, break: 94 },
 };
