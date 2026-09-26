@@ -58,6 +58,17 @@ offset and line terminator:
 | `prose` | front matter, comments | "does this section say anything?" |
 | `directives` | front matter, code | "what does `<!-- @assert ... -->` say?" |
 
+## Open questions
+
+- **Slugs.** `slugify` keeps spec-graph's results, which drop `_` where
+  GitHub's slugger keeps it. Matching GitHub exactly would change which
+  anchors spec-graph resolves; it waits for a release that can say so.
+- **Embeds.** `![[x]]` is reported as an image in the wiki form. A tool that
+  drops images must keep wiki embeds if it reads them as references.
+- **Inline comments.** A comment runs to the next `-->` across blank lines,
+  as every scanner here always read it; CommonMark ends an inline comment
+  with its paragraph. No document in the family's repositories differs.
+
 ## Consequences
 
 Each tool moves to the shared scanner in its own release, with the behaviour

@@ -21,6 +21,10 @@
       "types": "./dist/pattern/index.d.ts",
       "default": "./dist/pattern/index.js"
     },
+    "./markdown": {
+      "types": "./dist/markdown/index.d.ts",
+      "default": "./dist/markdown/index.js"
+    },
     "./jsonrpc": {
       "types": "./dist/jsonrpc/index.d.ts",
       "default": "./dist/jsonrpc/index.js"

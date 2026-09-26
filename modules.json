@@ -4,5 +4,8 @@
   "pattern": [
     "path"
   ],
+  "markdown": [
+    "text"
+  ],
   "jsonrpc": []
 }
