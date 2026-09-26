@@ -64,6 +64,18 @@ describe('linear time on hostile input', () => {
     expect(scanMarkdown(`${'['.repeat(1000)}x${']'.repeat(1000)}`).links.map((l) => l.form)).toEqual(['wiki']);
   });
 
+  it('link text full of images, and full of brackets that open nothing', () => {
+    expectLinear(
+      (scale) => `[${'![a](b.png) [c] '.repeat(5_000 * scale)}](d.md)`,
+      (s) => expect(s.links.length).toBe(1 + 5_000 * 16),
+    );
+    expectLinear(
+      // A space after the first `[` and before the last `]`: `[[` would open a wiki link.
+      (scale) => `[ ${'[ '.repeat(10_000 * scale)}x${' ]'.repeat(10_000 * scale)} ](d.md)`,
+      (s) => expect(s.links.map((l) => l.target)).toEqual(['d.md']),
+    );
+  });
+
   it('link destinations that never close', () => {
     const none = (s: MarkdownScan): void => expect(s.links).toEqual([]);
     expectLinear((scale) => '[a](b'.repeat(5000 * scale), none);

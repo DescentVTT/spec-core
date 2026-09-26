@@ -54,6 +54,16 @@ documents use. None of these needs a full parser to be read correctly in the
 documents the family meets, and none is ever read from inside code or a
 comment.
 
+A link's text is read again for images, which CommonMark renders there: a
+badge wrapped in a link, `[![build](badge.svg)](actions)`, has two
+destinations, and a tool that rewrites or checks relative paths needs both.
+Nothing else is read there. An image whose destination runs past the text's
+`]` is not in the text; a link written inside a link's text keeps the outer
+reading, where CommonMark would take the inner one - no document the family
+meets writes it; and an image's own text is alt text, with nothing in it to
+follow. *Amended 2026-09-26*: until then the text was skipped, and the image
+went unread.
+
 **Three masks, one for each question a tool asks**, all preserving every
 offset and line terminator:
 

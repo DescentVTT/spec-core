@@ -59,6 +59,35 @@ describe('inline links', () => {
     expect(links('[a](\r\nb)')[0]).toMatchObject({ target: 'b', targetStart: 6 });
   });
 
+  it('reads an image inside a link\'s text, as CommonMark does, after the link', () => {
+    // A badge wrapped in a link: two destinations, both followed by a reader.
+    expect(brief('[![build](https://x/badge.svg)](https://x/actions)')).toEqual([
+      ['inline', false, '![build](https://x/badge.svg)', 'https://x/actions', 'https://x/actions'],
+      ['inline', true, 'build', 'https://x/badge.svg', 'https://x/badge.svg'],
+    ]);
+    expect(links('see [![a](i.png) and text](t.md) here').map((l) => [l.image, l.start, l.end])).toEqual([
+      [false, 4, 32],
+      [true, 5, 16],
+    ]);
+    expect(brief('[![a][r]](x.md)\n\n[r]: r.png').map((l) => l.slice(0, 2))).toEqual([
+      ['inline', false],
+      ['reference', true],
+      ['definition', false],
+    ]);
+    // After the link, reading goes on past it, and finds the next.
+    expect(brief('[a](b) [![c](d.png)](e) [f](g)').map((l) => l[3])).toEqual(['b', 'e', 'd.png', 'g']);
+  });
+
+  it('reads no link but an image inside a link\'s text, and none past its `]`', () => {
+    // CommonMark's innermost link would win here; the outer is kept, as before.
+    expect(brief('[foo [bar](/uri)](/uri2)').map((l) => l[3])).toEqual(['/uri2']);
+    // An image whose destination runs past the text's `]` is not in the text.
+    expect(brief('[![a](b](c)').map((l) => l[3])).toEqual(['c']);
+    // An image's own text is alt text: nothing in it is followed.
+    expect(brief('![outer ![inner](i.png)](o.png)').map((l) => l[3])).toEqual(['o.png']);
+    expect(brief('[[wiki ![x](y.png)]]').map((l) => l[0])).toEqual(['wiki']);
+  });
+
   it('finds a link inside brackets that are not one, and keeps nested brackets in its text', () => {
     expect(brief('[a [b](c) d]')).toEqual([['inline', false, 'b', 'c', 'c']]);
     expect(brief('[a [b] c](d)')).toEqual([['inline', false, 'a [b] c', 'd', 'd']]);

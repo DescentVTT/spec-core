@@ -5,6 +5,14 @@ copies a module names the spec-core commit in its own changelog.
 
 ## Unreleased
 
+### Changed since cbe2223
+
+What the tools that copied cbe2223 see when they copy again.
+
+- `markdown`: an image inside a link's text is read, after the link - a badge
+  wrapped in a link, `[![build](badge.svg)](actions)`, gives both
+  destinations, where the image went unread (ADR-0004).
+
 ### Added
 
 - `path`: repository paths that refuse to leave the repository, POSIX
