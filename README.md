@@ -64,7 +64,7 @@ Why five tools and not the eleven once planned: [ADR-0006](docs/adr/0006-five-to
 | `path` | Repository paths that refuse to leave the repository; POSIX arithmetic independent of the host; link destinations. | all |
 | `text` | Line tables for `\n`, `\r\n` and `\r`; offset-preserving masks. | all |
 | `pattern` | Globs in three named dialects - `path`, `ripgrep`, `gitignore` - on one non-backtracking automaton, a malformed one refused with a reason (for `docs/**.md`, the two patterns it may have meant: `docs/**/*.md` and `docs/*.md`); a shortest **witness** path two scopes share, less what either protects, or a proof there is none; scope inclusion; the regex matcher behind spec-graph's `~=`. | all |
-| `markdown` | One pass that is exact about code and comments per CommonMark: headings, list items with their extent and checkboxes, links in six forms (a link inside a link is the link, as CommonMark reads it), tables, front matter and word of any that never closes, code and raw-text HTML blocks, each HTML block with its tag, and three masks for three questions. | all |
+| `markdown` | One pass that is exact about code and comments per CommonMark: headings, list items with their extent and checkboxes, links in six forms (a link inside a link is the link, and a definition never interrupts a paragraph, as CommonMark reads them), tables, front matter and word of any that never closes, code and raw-text HTML blocks, each HTML block with its tag, and three masks for three questions. | all |
 | `jsonrpc` | MCP over JSON-RPC 2.0 without an SDK: both protocol eras (the `initialize` handshake through 2025-11-25, and 2026-07-28), tools, resources, prompts, line framing with cancellation. | spec-guard, spec-harness |
 
 ```ts

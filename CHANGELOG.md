@@ -5,6 +5,24 @@ copies a module names the spec-core commit in its own changelog.
 
 ## Unreleased
 
+### Changed since 119345e
+
+What the tools that copied 119345e see when they copy again.
+
+- `markdown`: a link reference definition cannot interrupt a paragraph, as
+  CommonMark has it. `[r]: r.md` on the line under a paragraph's text, a
+  lazy continuation line in a block quote or a list item included, is that
+  text: it is no longer listed, no reference link is read through it, and
+  its brackets are the paragraph's. A definition is still read at the start
+  of the document, after a blank line, a heading, a thematic break, code,
+  front matter or an HTML block a comment opens, in a block quote opened on
+  its line, and under another definition (ADR-0004).
+- `markdown`: a definition's label holds no unescaped bracket and at most
+  999 characters, as CommonMark's link label does. `[[r]: r.md](z.md)` is a
+  link to `z.md` with the text `[r]: r.md`, where it was a definition of
+  `r.md](z.md)`, and a label of 1000 characters defines nothing. A label
+  with an escaped `]`, `[a\]b]: x`, is now read (ADR-0004).
+
 ### Changed since 8840d36
 
 What the tools that copied 8840d36 see when they copy again.

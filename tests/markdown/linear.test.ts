@@ -64,6 +64,17 @@ describe('linear time on hostile input', () => {
     expect(scanMarkdown(`${'['.repeat(1000)}x${']'.repeat(1000)}`).links.map((l) => l.form)).toEqual(['wiki']);
   });
 
+  it('definitions under a paragraph and under one another, and a label of escapes never closed', () => {
+    expectLinear(
+      (scale) => `text\n${'[a]: b\n'.repeat(5_000 * scale)}\n${'[c]: d\n'.repeat(5_000 * scale)}`,
+      (s) => expect(s.links.length).toBe(5_000 * 16),
+    );
+    expectLinear(
+      (scale) => `[${'\\]'.repeat(10_000 * scale)}: x`,
+      (s) => expect(s.links).toEqual([]),
+    );
+  });
+
   it('link text full of images, and full of brackets that open nothing', () => {
     expectLinear(
       (scale) => `[${'![a](b.png) [c] '.repeat(5_000 * scale)}](d.md)`,

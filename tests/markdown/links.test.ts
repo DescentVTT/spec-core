@@ -192,11 +192,9 @@ describe('a link inside a link', () => {
     expect(targets('[![a](<i [b](c).png>)](o.md)')).toEqual(['o.md', 'i [b](c).png']);
   });
 
-  it('is not a label on a definition\'s line, which holds no link', () => {
-    expect(brief(doc('[see', '[a]: /u', 'more](o.md)')).map((l) => [l[0], l[3]])).toEqual([
-      ['inline', 'o.md'],
-      ['definition', '/u'],
-    ]);
+  it('is not a bracket on a definition\'s line, which pairs with none after it', () => {
+    // The title holds a `[`, and the paragraph under the definition a `](`.
+    expect(brief(doc('[a]: /u "see [b"', 'more](o.md)')).map((l) => [l[0], l[3]])).toEqual([['definition', '/u']]);
   });
 
   it('is not a wiki link, which CommonMark does not read', () => {
@@ -239,7 +237,7 @@ describe('reference links and definitions', () => {
   });
 
   it('reads nothing through a label that is not defined', () => {
-    expect(brief(doc('[a][nope] [nope][] [nope]', '[one]: x'))).toEqual([['definition', false, 'one', 'x', 'x']]);
+    expect(brief(doc('[a][nope] [nope][] [nope]', '', '[one]: x'))).toEqual([['definition', false, 'one', 'x', 'x']]);
     expect(brief('[a][b] [c]')).toEqual([]);
   });
 
@@ -252,18 +250,86 @@ describe('reference links and definitions', () => {
     expect(brief(doc('[foo][', '', '[foo]: /url'))[0]).toEqual(['shortcut', false, 'foo', '/url', '/url']);
   });
 
-  it('refuses a label longer than 999 characters', () => {
+  it('refuses a label longer than 999 characters, in a definition and in a use', () => {
     const long = 'x'.repeat(1000);
-    expect(brief(doc(`[${long}]`, '', `[${long}]: y`)).map((l) => l[0])).toEqual(['definition']);
+    expect(brief(`[${long}]: y`)).toEqual([]);
     const fits = 'x'.repeat(999);
     expect(brief(doc(`[${fits}]`, '', `[${fits}]: y`)).map((l) => l[0])).toEqual(['shortcut', 'definition']);
-    expect(brief(doc(`[a][${long}]`, '', `[${long}]: y`)).map((l) => l[0])).toEqual(['definition']);
+    // A use is measured as written, before its whitespace collapses to `a b`.
+    const padded = `a${' '.repeat(998)}b`;
+    expect(brief(doc(`[${padded}]`, '', '[a b]: y')).map((l) => l[0])).toEqual(['definition']);
+  });
+
+  it('is not a definition with an unescaped bracket in its label, and is one with an escaped one', () => {
+    // `[r` is no label, so the line is a link whose text is `[r]: r.md`.
+    expect(brief('[[r]: r.md](z.md)')).toEqual([['inline', false, '[r]: r.md', 'z.md', 'z.md']]);
+    for (const text of ['[r[x]: r.md', '[r]x]: r.md', '[r\\]: r.md']) {
+      expect(links(text).filter((l) => l.form === 'definition'), text).toEqual([]);
+    }
+    expect(brief(doc('[a\\]b] and [c\\[d]', '', '[a\\]b]: /ab', '[c\\[d]: /cd')).map((l) => [l[0], l[2], l[3]])).toEqual([
+      ['shortcut', 'a\\]b', '/ab'],
+      ['shortcut', 'c\\[d', '/cd'],
+      ['definition', 'a\\]b', '/ab'],
+      ['definition', 'c\\[d', '/cd'],
+    ]);
   });
 
   it('does not read a definition as a shortcut to itself, or one after a comment', () => {
     expect(brief('[a]: b').map((l) => l[0])).toEqual(['definition']);
     expect(brief(doc('<!-- x', '-->[a]: b')).map((l) => l[0])).toEqual([]);
     expect(brief('> [a]: b')[0]?.[0]).toBe('definition');
+  });
+});
+
+/**
+ * CommonMark 0.31.2, 4.7: a link reference definition cannot interrupt a
+ * paragraph. On a line that goes on with one it is the paragraph's text.
+ */
+describe('a definition and the paragraph above it', () => {
+  const targets = (...lines: string[]): string[] => links(doc(...lines, '', 'use [r] [s]')).map((l) => `${l.form} ${l.target}`);
+
+  it('is text on a line that goes on with a paragraph', () => {
+    expect(targets('Some text', '[r]: r.md')).toEqual([]);
+    expect(targets('> text', '[r]: r.md')).toEqual([]);
+    expect(targets('> text', '> [r]: r.md')).toEqual([]);
+    expect(targets('- item', '  [r]: r.md')).toEqual([]);
+    // Inside a link's text over lines, it is part of that text.
+    expect(brief(doc('[see', '[r]: r.md', 'more](o.md)')).map((l) => [l[0], l[3]])).toEqual([['inline', 'o.md']]);
+  });
+
+  it('follows a definition, and nothing a paragraph goes on with', () => {
+    expect(targets('[r]: r.md', '[s]: s.md', 'text')).toEqual(['definition r.md', 'definition s.md', 'shortcut r.md', 'shortcut s.md']);
+    expect(targets('[r]: r.md', 'text', '[s]: s.md')).toEqual(['definition r.md', 'shortcut r.md']);
+    expect(targets('> [r]: r.md', '[s]: s.md')).toEqual(['definition r.md', 'definition s.md', 'shortcut r.md', 'shortcut s.md']);
+  });
+
+  it('opens a paragraph after a blank line, or where a line opens a block quote', () => {
+    expect(targets('text', '', '[r]: r.md')).toEqual(['definition r.md', 'shortcut r.md']);
+    expect(targets('text', '> [r]: r.md')).toEqual(['definition r.md', 'shortcut r.md']);
+  });
+
+  it('opens a paragraph after a heading, a thematic break, code or front matter', () => {
+    for (const above of [['# Head'], ['Head', '==='], ['text', '***'], ['```', 'code', '```'], ['    code'], ['---', 'title: x', '---']]) {
+      expect(targets(...above, '[r]: r.md'), above.join('|')).toEqual(['definition r.md', 'shortcut r.md']);
+    }
+    // After a blank line `===` underlines nothing, and is a paragraph's text.
+    expect(targets('x', '', '===', '[r]: r.md')).toEqual([]);
+  });
+
+  it('opens a paragraph after an HTML block a comment opens, and not after a comment in a paragraph', () => {
+    for (const above of [['<!-- refs -->'], ['<!--', 'refs', '--> and more'], ['   <!-- three columns in -->']]) {
+      expect(targets(...above, '[r]: r.md'), above.join('|')).toEqual(['definition r.md', 'shortcut r.md']);
+    }
+    for (const above of [['text <!-- a -->'], ['text <!-- a', 'b -->'], ['text', '    <!-- four columns in -->']]) {
+      expect(targets(...above, '[r]: r.md'), above.join('|')).toEqual([]);
+    }
+  });
+
+  it('opens a paragraph after a list marker with nothing, a heading or a thematic break after it', () => {
+    for (const above of [['-'], ['- # Head'], ['- ***']]) {
+      expect(targets(...above, '[r]: r.md'), above.join('|')).toEqual(['definition r.md', 'shortcut r.md']);
+      expect(targets(...above, '  [r]: r.md'), above.join('|')).toEqual(['definition r.md', 'shortcut r.md']);
+    }
   });
 });
 
