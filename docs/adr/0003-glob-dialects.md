@@ -44,8 +44,13 @@ Shared by all three:
   and minimatch read it as `*`; the tools this replaces read it as any depth,
   as one level, and as ripgrep does. Taking one of those readings quietly
   would narrow some scope that used to reach nested files, so the pattern is
-  refused with the two ways to say what was meant: `docs/**/*.md` or
-  `docs/*.md`.
+  refused with the two ways to say what was meant, written from the pattern
+  as given: `docs/**.md` is told `docs/**/*.md` for any depth or `docs/*.md`
+  for one level, `src/a**` `src/a*/**` or `src/a*`, `a**b` `a*/**/*b` or
+  `a*b`. Only the runs of stars change; braces, classes and escapes are kept
+  as written, and a run beside a brace keeps a star on that side too, so the
+  advice always compiles. *Amended 2026-09-27*: the refusal gave
+  `docs/**/*.md` and `*.md` whatever was written.
 - `*`, `?` and classes never match `/`; `*` matches a leading dot.
 - Characters are code points.
 - **Case is required**, `caseSensitive: true | false`, with no default. The

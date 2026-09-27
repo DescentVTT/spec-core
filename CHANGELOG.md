@@ -24,6 +24,11 @@ What the tools that copied 8840d36 see when they copy again.
 - Both fields are new and every other field is as it was; a caller that
   builds a `Block` or a `MarkdownScan` itself, as a test double might, adds
   them.
+- `pattern`: `**` inside a name is refused with advice written from the
+  pattern: `docs/**.md` is told `docs/**/*.md` for any depth or `docs/*.md`
+  for one level, `src/a**` `src/a*/**` or `src/a*`, where every such pattern
+  was told `docs/**/*.md` or `*.md`. The message's first clause is as it was
+  (ADR-0003).
 
 ### Changed since cbe2223
 
