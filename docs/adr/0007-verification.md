@@ -116,3 +116,33 @@ so what moved is what the tests of the entry above killed, and the runner:
 against the sweep of 8840d36, 24 survivors were killed, 5 timed out instead
 and one mutant that had timed out survived, and 77 moved from timed out to
 killed and 17 back.
+
+### 2026-09-27: the sweep of 119345e, and the gate at 94.5
+
+| Commit | Run | Score | Mutants | Killed | Timed out | Survived | No coverage |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 119345e | 36326262615 | 95.56% | 5,227 | 4,460 | 535 | 212 | 20 |
+
+119345e added the reading of a link inside a link, the front matter never
+closed, an HTML block's tag and the advice for `**` inside a name. Against
+the sweep of c78de30, five survivors were new and none of the old ones gone
+but by moving. Each new one was read:
+
+- **Equivalent, 3**, in `globstarAdvice`, each with its comment at the code:
+  `at <= written.length`, `close >= 0` and `close - 1`.
+- **Killed, 1**: `links.ts`, the backslash that skips the escaped character
+  as the link text is walked, emptied. An escaped `[` then opened a wiki
+  link with the `[` after it, so `\[[a]]` read as `[[a]]`; the wiki-link
+  test now holds an escaped one to no link.
+- **Killed, 1**: `LEGACY_RESOURCE_NOT_FOUND` made `+32002`. It and
+  `UNSUPPORTED_PROTOCOL_VERSION` trade places between survived and timed out
+  from sweep to sweep - a constant's mutant runs the whole suite - and no test
+  held either: the tests compared the reply's code to the constant itself.
+  They now write -32002 and -32022 out, as the test of JSON-RPC 2.0's codes
+  already did.
+
+**The `break` is 94.5.** Two sweeps of the code as it now stands read 95.42%
+and 95.56%, over the 94.89% the `break` of 94 was set against. 95 would sit
+0.42 points under the lower of them, inside the 0.48 that two sweeps of
+nearly the same code have swung; 94.5 sits 0.92 and 1.06 points under, as
+far as 94 sat under 94.89.

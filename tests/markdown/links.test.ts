@@ -290,8 +290,10 @@ describe('autolinks and wiki links', () => {
     expect(links('![[diagram.png]]')[0]).toMatchObject({ form: 'wiki', image: true, start: 0, target: 'diagram.png' });
   });
 
-  it('is not a wiki link when empty or when the brackets close on another line', () => {
+  it('is not a wiki link when empty, escaped, or when the brackets close on another line', () => {
     expect(links('[[ ]]').filter((l) => l.form === 'wiki')).toEqual([]);
+    // An escaped `[` is text, and the `[` after it opens no wiki link alone.
+    expect(links(String.raw`\[[a]] and x \[[b|c]]`)).toEqual([]);
     expect(links('[[a\nb]]').filter((l) => l.form === 'wiki')).toEqual([]);
     expect(links('[[a]] [[b')).toHaveLength(1);
   });
