@@ -103,3 +103,16 @@ shared code had all timed out the first time. Each was read.
     marker line clears it).
 
 The survivors both sweeps reported are not reread in this entry.
+
+### 2026-09-27: the first sweep under the gate
+
+| Commit | Run | Score | Mutants | Killed | Timed out | Survived | No coverage |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| c78de30 | 36267469758 | 95.42% | 5,086 | 4,342 | 511 | 206 | 27 |
+
+Stryker enforced `break: 94`, and the sweep cleared it by 1.42 points.
+c78de30's code is 8840d36's - only tests and comments changed between them -
+so what moved is what the tests of the entry above killed, and the runner:
+against the sweep of 8840d36, 24 survivors were killed, 5 timed out instead
+and one mutant that had timed out survived, and 77 moved from timed out to
+killed and 17 back.
