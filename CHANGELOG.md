@@ -22,6 +22,10 @@ What the tools that copied 119345e see when they copy again.
   link to `z.md` with the text `[r]: r.md`, where it was a definition of
   `r.md](z.md)`, and a label of 1000 characters defines nothing. A label
   with an escaped `]`, `[a\]b]: x`, is now read (ADR-0004).
+- `markdown`: a second bracket holding a bracket or more than 999 characters
+  is no label, and the bracket before it is read as a shortcut: with `[r]`
+  defined, `[r][a[b]c]` gives `r`'s destination and then reads `[b]`, where
+  it gave nothing for `[r]` (ADR-0004).
 
 ### Changed since 8840d36
 

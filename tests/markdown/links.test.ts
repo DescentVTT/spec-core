@@ -274,6 +274,27 @@ describe('reference links and definitions', () => {
     ]);
   });
 
+  it('reads the first bracket as a shortcut when the second is no label: it holds a bracket or 999 characters more', () => {
+    const defined = (...lines: string[]): string => doc(...lines, '', '[r]: /r', '[b]: /b');
+    // The pair inside the second bracket is read on its own.
+    expect(brief(defined('[r][a[b]c]')).map((l) => [l[0], l[1], l[3]])).toEqual([
+      ['shortcut', false, '/r'],
+      ['shortcut', false, '/b'],
+      ['definition', false, '/r'],
+      ['definition', false, '/b'],
+    ]);
+    expect(brief(defined('![r][a [b](c.md) d]')).map((l) => [l[0], l[1], l[3]]).slice(0, 2)).toEqual([
+      ['shortcut', true, '/r'],
+      ['inline', false, 'c.md'],
+    ]);
+    const long = 'x'.repeat(1000);
+    expect(brief(defined(`[r][${long}]`))[0]).toEqual(['shortcut', false, 'r', '/r', '/r']);
+    const fits = 'y'.repeat(999);
+    expect(brief(defined(`[r][${fits}]`, '', `[${fits}]: /y`))[0]).toEqual(['reference', false, 'r', '/y', '/y']);
+    // Its text may hold brackets, and a label with an escaped one is a label.
+    expect(brief(doc('[a [b] c][d\\[e]', '', '[d\\[e]: /de'))[0]).toEqual(['reference', false, 'a [b] c', '/de', '/de']);
+  });
+
   it('does not read a definition as a shortcut to itself, or one after a comment', () => {
     expect(brief('[a]: b').map((l) => l[0])).toEqual(['definition']);
     expect(brief(doc('<!-- x', '-->[a]: b')).map((l) => l[0])).toEqual([]);
@@ -448,10 +469,10 @@ describe('offsets and labels, exactly', () => {
     expect(links('[a](  \n  b  \n  "t")')[0]).toMatchObject({ target: 'b', targetStart: 9 });
   });
 
-  it('reads a second label of up to 999 spaces as none, and a longer one as no label', () => {
+  it('reads a second label of up to 999 spaces as none, and a longer one as no label, after a shortcut', () => {
     const fits = doc(`[a][${' '.repeat(999)}]`, '', '[a]: /u');
     expect(links(fits)[0]).toMatchObject({ form: 'reference', label: 'a' });
     const long = doc(`[a][${' '.repeat(1000)}]`, '', '[a]: /u');
-    expect(links(long).map((l) => l.form)).toEqual(['definition']);
+    expect(links(long)[0]).toMatchObject({ form: 'shortcut', label: 'a', end: 3 });
   });
 });
