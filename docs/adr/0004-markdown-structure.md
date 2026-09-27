@@ -40,7 +40,10 @@ Exact:
   paragraph. An item's text starts past its marker and the one to four spaces
   after it; a line left of that after a blank line is outside the item.
 - `<script>`, `<pre>`, `<style>`, `<textarea>` blocks, whose content is not
-  Markdown.
+  Markdown. Each names its element, lowercased as CommonMark matches it in
+  any case, in `Block.tag`; a code block's is `null`. *Amended 2026-09-27*:
+  the block did not say which element opened it, and spec-guard read the tag
+  back out of the opening line to name it in a message.
 - Code spans and HTML comments resolved **left to right in one pass**:
   whichever opens first wins. A run of backticks opens a span only if a run of
   the same length closes it before the paragraph ends; an escaped backtick

@@ -19,6 +19,11 @@ What the tools that copied 8840d36 see when they copy again.
   offsets of front matter opened on the first line and never closed, which
   the scan reads as no front matter, so a tool can say so. The rest of the
   document is read as before (ADR-0004).
+- `markdown`: `Block.tag` names an HTML block's element, lowercased -
+  `script`, `pre`, `style` or `textarea` - and is `null` for code (ADR-0004).
+- Both fields are new and every other field is as it was; a caller that
+  builds a `Block` or a `MarkdownScan` itself, as a test double might, adds
+  them.
 
 ### Changed since cbe2223
 
