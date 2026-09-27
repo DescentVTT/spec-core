@@ -91,6 +91,27 @@ the view that no document the family meets writes one; a tool reading links
 now sees the inner destination and not the outer, and spec-brief no longer
 needs to read each link's text again to find it.
 
+**A definition cannot interrupt a paragraph**, as CommonMark has it: it
+opens a paragraph or follows a definition that did, and `[r]: r.md` on the
+line under a paragraph's text, a lazy continuation line included, is that
+text. A paragraph ends here where the scan sees one end: at a blank line, a
+heading, a thematic break, code, front matter, the last line of an HTML
+block a comment opens, and in a list item whose marker has nothing after it,
+or a heading or a thematic break. A definition's label is CommonMark's link
+label, with no unescaped bracket and at most 999 characters. The text after
+a run of definitions is a paragraph of its own, and its brackets pair with
+none before it. Still simple: a definition is read on one line and at most
+three columns in, so a label, a destination or a title that runs onto the
+next line defines nothing, a definition under a title written on a line of
+its own is that paragraph's text, and so is one indented four columns under
+another, where CommonMark takes the indentation off; one on a list item's
+marker line is not read, as nothing there is but the item; `[^1]: text` is
+a footnote, as GitHub reads it; and a second bracket of nothing but spaces,
+`[r][ ]`, is read as `[r][]`, where commonmark.js looks up an empty label
+and finds nothing. *Amended 2026-09-28*: a definition was read at the start
+of any line, and its label could hold a `[`, so `Some text` over
+`[r]: r.md` defined `r`, and `[[r]: r.md](z.md)` defined `r.md](z.md)`.
+
 **Three masks, one for each question a tool asks**, all preserving every
 offset and line terminator:
 
