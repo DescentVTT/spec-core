@@ -5,6 +5,17 @@ copies a module names the spec-core commit in its own changelog.
 
 ## Unreleased
 
+### Changed since 8840d36
+
+What the tools that copied 8840d36 see when they copy again.
+
+- `markdown`: a link inside a link's text is the link, and the brackets
+  around it and what follows them are text, as CommonMark reads it:
+  `[a [b](inner.md) c](outer.md)` gives `inner.md`, and no longer
+  `outer.md`, at any depth and in every bracket form - with `[ref]` defined,
+  `[a [ref] c](x.md)` gives the shortcut alone. A link in an image's alt text
+  leaves the image an image, and a link may still hold an image (ADR-0004).
+
 ### Changed since cbe2223
 
 What the tools that copied cbe2223 see when they copy again.

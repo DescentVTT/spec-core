@@ -79,8 +79,6 @@ describe('inline links', () => {
   });
 
   it('reads no link but an image inside a link\'s text, and none past its `]`', () => {
-    // CommonMark's innermost link would win here; the outer is kept, as before.
-    expect(brief('[foo [bar](/uri)](/uri2)').map((l) => l[3])).toEqual(['/uri2']);
     // An image whose destination runs past the text's `]` is not in the text,
     // whether or not it closes: in the second, `u](d)v` would be its
     // destination.
@@ -98,6 +96,111 @@ describe('inline links', () => {
     expect(brief('[a [b] c](d)')).toEqual([['inline', false, 'a [b] c', 'd', 'd']]);
     expect(brief('\\[a](b)')).toEqual([]);
     expect(brief('[a\\](b)')).toEqual([]);
+  });
+});
+
+/**
+ * CommonMark 0.31.2: links may not contain other links, at any level of
+ * nesting. The innermost link is the link, and the brackets around it and
+ * whatever follows them are text. An image may hold a link, and a link an
+ * image.
+ */
+describe('a link inside a link', () => {
+  const targets = (text: string): string[] => links(text).map((l) => l.target);
+
+  it('is the link, and the brackets around it and their destination are text', () => {
+    const text = 'See [a [b](inner.md) c](outer.md) here.\n';
+    expect(links(text)).toEqual([
+      { form: 'inline', image: false, text: 'b', target: 'inner.md', label: null, start: 7, end: 20, targetStart: 11, targetEnd: 19, line: 1 },
+    ]);
+    expect(targets('[foo [bar](/uri)](/uri2)')).toEqual(['/uri']);
+    // Brackets around the link that close with nothing after them are text too.
+    expect(targets('[x](y) [a [b](c) d](e) [f](g)')).toEqual(['y', 'c', 'g']);
+  });
+
+  it('makes text of every pair of brackets around it, at any depth', () => {
+    expect(targets('[foo *[bar [baz](/uri)](/uri)*](/uri)')).toEqual(['/uri']);
+    expect(brief('[a [b [c](c.md) d] e](f.md)')).toEqual([['inline', false, 'c', 'c.md', 'c.md']]);
+  });
+
+  it('is a link in any of the bracket forms, and so is the text around it', () => {
+    // A reference or a shortcut inside makes text of an inline link around it.
+    expect(brief(doc('[a [b][] c](d.md)', '', '[b]: /b')).map((l) => l.slice(0, 3))).toEqual([
+      ['reference', false, 'b'],
+      ['definition', false, 'b'],
+    ]);
+    expect(brief(doc('[a [ref] c](/outer)', '', '[ref]: /r')).map((l) => l.slice(0, 4))).toEqual([
+      ['shortcut', false, 'ref', '/r'],
+      ['definition', false, 'ref', '/r'],
+    ]);
+    // A link inside makes text of a reference around it, whose second label
+    // is then a shortcut of its own.
+    expect(brief(doc('[foo [bar](/uri)][ref]', '', '[ref]: /uri')).map((l) => l.slice(0, 3))).toEqual([
+      ['inline', false, 'bar'],
+      ['shortcut', false, 'ref'],
+      ['definition', false, 'ref'],
+    ]);
+    expect(brief(doc('[foo *bar [baz][ref]*][ref]', '', '[ref]: /uri')).map((l) => l.slice(0, 3))).toEqual([
+      ['reference', false, 'baz'],
+      ['shortcut', false, 'ref'],
+      ['definition', false, 'ref'],
+    ]);
+  });
+
+  it('makes text of the link around an image that holds it, and is alt text, read no further', () => {
+    expect(brief('[![a [b](u1)](i.png)](u2)')).toEqual([['inline', true, 'a [b](u1)', 'i.png', 'i.png']]);
+  });
+
+  it('is read where it starts as an image ends, inside the brackets around both', () => {
+    expect(brief('[![a](b.png)[c](d) x](u)').map((l) => [l[1], l[3]])).toEqual([
+      [true, 'b.png'],
+      [false, 'd'],
+    ]);
+  });
+
+  it('leaves alone brackets that hold no link, and a link that holds an image', () => {
+    expect(brief('[link [foo [bar]]](/uri)')).toEqual([['inline', false, 'link [foo [bar]]', '/uri', '/uri']]);
+    expect(brief(doc('[link [foo [bar]]][ref]', '', '[ref]: /uri')).map((l) => l.slice(0, 3))).toEqual([
+      ['reference', false, 'link [foo [bar]]'],
+      ['definition', false, 'ref'],
+    ]);
+    expect(brief(doc('[![moon](moon.jpg)][ref]', '', '[ref]: /uri')).map((l) => l.slice(0, 4))).toEqual([
+      ['reference', false, '![moon](moon.jpg)', '/uri'],
+      ['inline', true, 'moon', 'moon.jpg'],
+      ['definition', false, 'ref', '/uri'],
+    ]);
+    // A link never closed holds nothing.
+    expect(targets('[link [bar](/uri)')).toEqual(['/uri']);
+  });
+
+  it('leaves alone an image that holds a link, which is alt text', () => {
+    expect(brief('![foo [bar](/url)](/url2)')).toEqual([['inline', true, 'foo [bar](/url)', '/url2', '/url2']]);
+    expect(targets('![[[foo](uri1)](uri2)](uri3)')).toEqual(['uri3']);
+  });
+
+  it('is not a second label, a title or a destination another link has read', () => {
+    // A badge by reference inside a link by reference: the image's second
+    // label, `[badge]`, would be a shortcut on its own.
+    const badge = doc('[![b][badge]][ci]', '', '[badge]: b.svg', '[ci]: ci.html');
+    expect(brief(badge).map((l) => [l[0], l[1], l[3]])).toEqual([
+      ['reference', false, 'ci.html'],
+      ['reference', true, 'b.svg'],
+      ['definition', false, 'b.svg'],
+      ['definition', false, 'ci.html'],
+    ]);
+    expect(targets('[![a](i.png "[t](u)")](o.md)')).toEqual(['o.md', 'i.png']);
+    expect(targets('[![a](<i [b](c).png>)](o.md)')).toEqual(['o.md', 'i [b](c).png']);
+  });
+
+  it('is not a label on a definition\'s line, which holds no link', () => {
+    expect(brief(doc('[see', '[a]: /u', 'more](o.md)')).map((l) => [l[0], l[3]])).toEqual([
+      ['inline', 'o.md'],
+      ['definition', '/u'],
+    ]);
+  });
+
+  it('is not a wiki link, which CommonMark does not read', () => {
+    expect(targets('[a [[w]] b](d.md)')).toEqual(['d.md']);
   });
 });
 

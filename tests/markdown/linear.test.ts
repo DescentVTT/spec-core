@@ -76,6 +76,17 @@ describe('linear time on hostile input', () => {
     );
   });
 
+  it('links and images nested deep around a link, each with a destination', () => {
+    expectLinear(
+      (scale) => `${'[ '.repeat(5_000 * scale)}[x](y)${' ](z)'.repeat(5_000 * scale)}`,
+      (s) => expect(s.links.map((l) => l.target)).toEqual(['y']),
+    );
+    expectLinear(
+      (scale) => `${'![ '.repeat(5_000 * scale)}[x](y)${' ](z)'.repeat(5_000 * scale)}`,
+      (s) => expect(s.links.map((l) => [l.image, l.target])).toEqual([[true, 'z']]),
+    );
+  });
+
   it('link destinations that never close', () => {
     const none = (s: MarkdownScan): void => expect(s.links).toEqual([]);
     expectLinear((scale) => '[a](b'.repeat(5000 * scale), none);
