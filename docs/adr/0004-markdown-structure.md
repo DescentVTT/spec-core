@@ -54,6 +54,14 @@ documents use. None of these needs a full parser to be read correctly in the
 documents the family meets, and none is ever read from inside code or a
 comment.
 
+Front matter opened on the first line and never closed opens nothing: the
+line is a thematic break and the rest of the document is Markdown, as
+without it. The scan says that it was written, in `unclosedFrontMatter`,
+with its kind and its line, so that a tool can tell such a document from one
+with no front matter and say what went wrong. *Amended 2026-09-27*: the scan
+read the two alike, and spec-graph read the first line again to tell them
+apart.
+
 A link's text is read again for images, which CommonMark renders there: a
 badge wrapped in a link, `[![build](badge.svg)](actions)`, has two
 destinations, and a tool that rewrites or checks relative paths needs both.

@@ -15,6 +15,10 @@ What the tools that copied 8840d36 see when they copy again.
   `outer.md`, at any depth and in every bracket form - with `[ref]` defined,
   `[a [ref] c](x.md)` gives the shortcut alone. A link in an image's alt text
   leaves the image an image, and a link may still hold an image (ADR-0004).
+- `markdown`: `MarkdownScan.unclosedFrontMatter` gives the kind, line and
+  offsets of front matter opened on the first line and never closed, which
+  the scan reads as no front matter, so a tool can say so. The rest of the
+  document is read as before (ADR-0004).
 
 ### Changed since cbe2223
 

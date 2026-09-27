@@ -66,6 +66,28 @@ describe('front matter', () => {
     const s = scanMarkdown('---\r\na: 1\r\n---\r\nx');
     expect(s.frontMatter).toMatchObject({ raw: 'a: 1\r\n', start: 5, end: 11, bodyStart: 16 });
   });
+
+  it('says where front matter opened that never closes, and reads the rest as Markdown all the same', () => {
+    const text = '---\nstatus: accepted\ntitle: x\n\n# Heading\n\nbody\n';
+    const s = scanMarkdown(text);
+    expect(s.frontMatter).toBeNull();
+    expect(s.bodyStart).toBe(0);
+    expect(s.unclosedFrontMatter).toEqual({ kind: 'yaml', line: 1, start: 0, end: 3 });
+    // The opening line is a thematic break, and nothing is blanked.
+    expect(s.lines.map((l) => l.frontMatter)).toEqual(s.lines.map(() => false));
+    expect(s.masks.structure).toBe(text);
+    expect(s.headings.map((h) => h.text)).toEqual(['Heading']);
+    expect(scanMarkdown('+++ \t\na = 1\n').unclosedFrontMatter).toEqual({ kind: 'toml', line: 1, start: 0, end: 5 });
+    expect(scanMarkdown('\uFEFF---').unclosedFrontMatter).toEqual({ kind: 'yaml', line: 1, start: 0, end: 3 });
+  });
+
+  it('says nothing is unclosed when front matter closes, or when the first line opens none', () => {
+    for (const text of [doc('---', 'a: 1', '---'), doc('+++', 'a = 1', '+++'), '# T\n---\n', '', ' ---\na', '----\na']) {
+      expect(scanMarkdown(text).unclosedFrontMatter, JSON.stringify(text)).toBeNull();
+    }
+    // A YAML block closed only by TOML's delimiter is not closed.
+    expect(scanMarkdown(doc('---', 'a: 1', '+++')).unclosedFrontMatter?.kind).toBe('yaml');
+  });
 });
 
 describe('lines', () => {
