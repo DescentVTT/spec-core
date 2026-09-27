@@ -58,11 +58,27 @@ A link's text is read again for images, which CommonMark renders there: a
 badge wrapped in a link, `[![build](badge.svg)](actions)`, has two
 destinations, and a tool that rewrites or checks relative paths needs both.
 Nothing else is read there. An image whose destination runs past the text's
-`]` is not in the text; a link written inside a link's text keeps the outer
-reading, where CommonMark would take the inner one - no document the family
-meets writes it; and an image's own text is alt text, with nothing in it to
-follow. *Amended 2026-09-26*: until then the text was skipped, and the image
-went unread.
+`]` is not in the text, and an image's own text is alt text, with nothing in
+it to follow. *Amended 2026-09-26*: until then the text was skipped, and the
+image went unread.
+
+**Links may not contain links**, at any depth, as CommonMark has it: in
+`[a [b](inner.md) c](outer.md)` the inner pair is the link, and the brackets
+around it and `(outer.md)` are text. The link inside may be of any bracket
+form: with `[ref]` defined, `[a [ref] c](x.md)` is text around a shortcut,
+and in `[foo [bar](/u)][ref]` the second label, left behind, is read as a
+shortcut of its own. An image is not made text by a link in its alt text,
+though the brackets around the image are, and a link may hold an image. What
+a link or an image has read past its `]` - a destination, a title, a second
+label - holds no link, so `[![b][badge]][ci]` stays a link by reference
+around an image by reference. A wiki link is not CommonMark's and makes
+nothing text. The pairs of a paragraph are read innermost first, as
+CommonMark reads them at their `]`, before the paragraph is read for links,
+so this costs one more pass over the pairs and no search. *Amended
+2026-09-27*: the outer pair was the link and the inner one went unread, on
+the view that no document the family meets writes one; a tool reading links
+now sees the inner destination and not the outer, and spec-brief no longer
+needs to read each link's text again to find it.
 
 **Three masks, one for each question a tool asks**, all preserving every
 offset and line terminator:
