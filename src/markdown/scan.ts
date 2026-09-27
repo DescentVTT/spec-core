@@ -49,7 +49,7 @@ import {
   type ListMarker,
 } from './syntax.js';
 import { findTables } from './tables.js';
-import type { Block, BlockKind, FrontMatterBlock, HtmlComment, MarkdownScan, MaskKind, Masks, ScannedLine } from './types.js';
+import type { Block, BlockKind, FrontMatterBlock, HtmlComment, MarkdownScan, MaskKind, Masks, ScannedLine, UnclosedFrontMatter } from './types.js';
 
 const BACKTICK = 0x60;
 const BACKSLASH = 0x5c;
@@ -58,7 +58,7 @@ const BACKSLASH = 0x5c;
 export function scanMarkdown(source: string): MarkdownScan {
   const text = stripBom(source);
   const index = createLineIndex(text);
-  const frontMatter = readFrontMatterBlock(text, index);
+  const { frontMatter, unclosedFrontMatter } = readFrontMatterBlock(text, index);
   const bodyStart = frontMatter === null ? 0 : frontMatter.bodyStart;
   const core = scanCore(text, index, frontMatter === null ? 0 : frontMatter.closeLine);
 
@@ -108,6 +108,7 @@ export function scanMarkdown(source: string): MarkdownScan {
     index,
     lines: core.lines,
     frontMatter,
+    unclosedFrontMatter,
     bodyStart,
     blocks: core.blocks,
     codeSpans: core.spans,
@@ -134,22 +135,30 @@ export function linesOf(scan: MarkdownScan, view: MaskKind | 'text' = 'text'): s
   return splitLines(view === 'text' ? scan.text : scan.masks[view]);
 }
 
+interface Front {
+  readonly frontMatter: FrontMatterBlock | null;
+  readonly unclosedFrontMatter: UnclosedFrontMatter | null;
+}
+
+const NO_FRONT: Front = { frontMatter: null, unclosedFrontMatter: null };
+
 /**
  * YAML between `---` lines, closed by `---` or `...`, or TOML between `+++`
  * lines. The opening line is the document's first, exactly. An opening line
- * that is never closed opens nothing: it is a thematic break.
+ * that is never closed opens nothing: it is a thematic break, and is reported
+ * as unclosed front matter.
  */
-function readFrontMatterBlock(text: string, index: LineIndex): FrontMatterBlock | null {
+function readFrontMatterBlock(text: string, index: LineIndex): Front {
   const kind = frontMatterKind(index.lineText(1));
-  if (kind === null) return null;
+  if (kind === null) return NO_FRONT;
   for (let line = 2; line <= index.lineCount; line += 1) {
     if (!frontMatterCloses(index.lineText(line), kind)) continue;
     const start = index.lineStart(2);
     const end = index.lineStart(line);
     const bodyStart = line < index.lineCount ? index.lineStart(line + 1) : text.length;
-    return { kind, raw: text.slice(start, end), start, end, bodyStart, closeLine: line };
+    return { frontMatter: { kind, raw: text.slice(start, end), start, end, bodyStart, closeLine: line }, unclosedFrontMatter: null };
   }
-  return null;
+  return { frontMatter: null, unclosedFrontMatter: { kind, line: 1, start: 0, end: index.lineEnd(1) } };
 }
 
 /** `make`, run the first time its value is asked for; the same value after. */
