@@ -43,6 +43,7 @@ import {
   listMarker,
   measureIndent,
   opensComment,
+  rawTextTag,
   setextUnderline,
   stripQuotes,
   type FenceOpen,
@@ -369,8 +370,8 @@ function scanCore(text: string, index: LineIndex, frontLines: number): Core {
   const items: number[] = [];
   let pos = 0;
 
-  const openBlock = (kind: BlockKind, i: number, info: string): Mutable<Block> => {
-    const block = { kind, start: index.lineStart(i + 1), end: index.lineEnd(i + 1), line: i + 1, endLine: i + 1, info, closed: kind === 'indented' };
+  const openBlock = (kind: BlockKind, i: number, info: string, tag: string | null): Mutable<Block> => {
+    const block = { kind, start: index.lineStart(i + 1), end: index.lineEnd(i + 1), line: i + 1, endLine: i + 1, info, tag, closed: kind === 'indented' };
     blocks.push(block);
     return block;
   };
@@ -431,7 +432,7 @@ function scanCore(text: string, index: LineIndex, frontLines: number): Core {
     const margin = items[items.length - 1] ?? 0;
     const deep = shape.indent >= margin + 4;
     if (!shape.blank && deep && (previousBlank || indented !== null)) {
-      if (indented === null) indented = openBlock('indented', i, '');
+      if (indented === null) indented = openBlock('indented', i, '', null);
       else extend(indented, i);
       push(CODE);
       return;
@@ -448,12 +449,13 @@ function scanCore(text: string, index: LineIndex, frontLines: number): Core {
     // A fence as deep as indented code continues a paragraph instead.
     const open = deep ? null : fenceOpen(content);
     if (open !== null) {
-      fence = { block: openBlock('fenced', i, open.info), depth: shape.depth, open };
+      fence = { block: openBlock('fenced', i, open.info, null), depth: shape.depth, open };
       push(CODE);
       return;
     }
-    if (isRawTextOpen(content)) {
-      const block = openBlock('html', i, '');
+    const tag = rawTextTag(content);
+    if (tag !== null) {
+      const block = openBlock('html', i, '', tag);
       push(HTML);
       if (hasRawTextClose(content)) block.closed = true;
       else raw = { block, depth: shape.depth };

@@ -128,6 +128,11 @@ export interface Block {
   /** A fenced block's info string, trimmed; empty for the other kinds. */
   readonly info: string;
   /**
+   * An HTML block's tag name, lowercased, since CommonMark matches it in any
+   * case: `script`, `pre`, `style` or `textarea`. `null` for code.
+   */
+  readonly tag: string | null;
+  /**
    * Whether a closing fence or closing tag ended the block. One that runs to
    * the end of the document or of its block quote is not closed. An indented
    * block always is.

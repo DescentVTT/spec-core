@@ -154,7 +154,7 @@ describe('fenced code', () => {
     const s = scanMarkdown(text);
     expect(codeLines(text)).toEqual([2, 3, 4]);
     expect(s.lines[2]).toMatchObject({ code: true, html: false, frontMatter: false });
-    expect(s.blocks).toEqual([{ kind: 'fenced', start: 2, end: 17, line: 2, endLine: 4, info: 'ts', closed: true }]);
+    expect(s.blocks).toEqual([{ kind: 'fenced', start: 2, end: 17, line: 2, endLine: 4, info: 'ts', tag: null, closed: true }]);
     expect(s.headings).toEqual([]);
   });
 
@@ -222,7 +222,7 @@ describe('indented code', () => {
     const text = doc('para', '', '    code', '\tmore', '', '    again', '', 'text');
     const s = scanMarkdown(text);
     expect(codeLines(text)).toEqual([3, 4, 5, 6]);
-    expect(s.blocks).toEqual([{ kind: 'indented', start: 6, end: 31, line: 3, endLine: 6, info: '', closed: true }]);
+    expect(s.blocks).toEqual([{ kind: 'indented', start: 6, end: 31, line: 3, endLine: 6, info: '', tag: null, closed: true }]);
   });
 
   it('never interrupts a paragraph, and opens at the top of the body', () => {
@@ -289,9 +289,21 @@ describe('raw-text HTML', () => {
     const s = scanMarkdown(text);
     expect(where(text, (l) => l.html)).toEqual([1, 2, 3, 4]);
     expect(s.lines[1]).toMatchObject({ html: true, code: false, frontMatter: false });
-    expect(s.blocks).toEqual([{ kind: 'html', start: 0, end: 25, line: 1, endLine: 4, info: '', closed: true }]);
+    expect(s.blocks).toEqual([{ kind: 'html', start: 0, end: 25, line: 1, endLine: 4, info: '', tag: 'pre', closed: true }]);
     expect(s.headings.map((h) => h.text)).toEqual(['yes']);
     expect(s.links).toEqual([]);
+  });
+
+  it('names the element that opened it, lowercased, and names none for code', () => {
+    const text = doc('<SCRIPT>', '</SCRIPT>', '<Pre class="x">', '</pre>', '<style>', '</style>', '<textarea', '</textarea>', '```', '```', '', '    code');
+    expect(scanMarkdown(text).blocks.map((b) => [b.kind, b.tag])).toEqual([
+      ['html', 'script'],
+      ['html', 'pre'],
+      ['html', 'style'],
+      ['html', 'textarea'],
+      ['fenced', null],
+      ['indented', null],
+    ]);
   });
 
   it('closes on its own line, and runs to the end when never closed', () => {
