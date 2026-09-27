@@ -187,10 +187,12 @@ interface Brackets {
   readonly before: Map<number, number>;
   /** Every `[` written after an unescaped `!`: an image's. */
   readonly images: Set<number>;
+  /** Every `[` with a pair inside it: those whose text holds an unescaped bracket. */
+  readonly nested: Set<number>;
 }
 
 function pairBrackets(structure: string, from: number, to: number): Brackets {
-  const brackets: Brackets = { pairs: new Map(), outer: new Map(), before: new Map(), images: new Set() };
+  const brackets: Brackets = { pairs: new Map(), outer: new Map(), before: new Map(), images: new Set(), nested: new Set() };
   const { pairs } = brackets;
   const open: { readonly at: number; readonly before: number }[] = [];
   let escaped = -1;
@@ -211,7 +213,10 @@ function pairBrackets(structure: string, from: number, to: number): Brackets {
         pairs.set(opened.at, at);
         brackets.before.set(opened.at, opened.before);
         const around = open[open.length - 1];
-        if (around !== undefined) brackets.outer.set(opened.at, around.at);
+        if (around !== undefined) {
+          brackets.outer.set(opened.at, around.at);
+          brackets.nested.add(around.at);
+        }
       }
     }
   }
@@ -408,11 +413,14 @@ function readBrackets(layout: Layout, definitions: ReadonlyMap<string, Definitio
           return { form: 'inline', image, text: label(), target, label: null, start, line: line.line, ...dest };
         }
       } else {
-        // Only a `[` is paired, so a second label follows exactly when this finds one.
+        // Only a `[` is paired, so a second bracket follows exactly when this
+        // finds one. It is a label unless it holds a bracket, which it does
+        // when a pair lies inside it, or more than 999 characters; one that is
+        // not leaves the first bracket to be read as a shortcut.
         const refClose = pairs.get(close + 1);
-        if (refClose !== undefined) {
+        if (refClose !== undefined && refClose - close - 2 <= MAX_LABEL && !brackets.nested.has(close + 1)) {
           // `[text][]` is read through its text; `[text][label]` through its label.
-          const collapsed = refClose - close - 2 <= MAX_LABEL && text.slice(close + 2, refClose).trim() === '';
+          const collapsed = text.slice(close + 2, refClose).trim() === '';
           const found = collapsed ? lookup(at + 1, close) : lookup(close + 2, refClose);
           if (found === undefined) return null;
           const written = collapsed ? label() : text.slice(close + 2, refClose).trim();

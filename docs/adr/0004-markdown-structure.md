@@ -98,19 +98,25 @@ text. A paragraph ends here where the scan sees one end: at a blank line, a
 heading, a thematic break, code, front matter, the last line of an HTML
 block a comment opens, and in a list item whose marker has nothing after it,
 or a heading or a thematic break. A definition's label is CommonMark's link
-label, with no unescaped bracket and at most 999 characters. The text after
-a run of definitions is a paragraph of its own, and its brackets pair with
-none before it. Still simple: a definition is read on one line and at most
-three columns in, so a label, a destination or a title that runs onto the
-next line defines nothing, a definition under a title written on a line of
-its own is that paragraph's text, and so is one indented four columns under
-another, where CommonMark takes the indentation off; one on a list item's
-marker line is not read, as nothing there is but the item; `[^1]: text` is
-a footnote, as GitHub reads it; and a second bracket of nothing but spaces,
-`[r][ ]`, is read as `[r][]`, where commonmark.js looks up an empty label
-and finds nothing. *Amended 2026-09-28*: a definition was read at the start
-of any line, and its label could hold a `[`, so `Some text` over
-`[r]: r.md` defined `r`, and `[[r]: r.md](z.md)` defined `r.md](z.md)`.
+label, with no unescaped bracket and at most 999 characters, and so is the
+second bracket of a reference link: `[r][a[b]c]` is the shortcut `[r]`
+followed by text. The text after a run of definitions is a paragraph of its
+own, and its brackets pair with none before it. Still simple: a definition
+is read on one line and at most three columns in, so a label, a destination
+or a title that runs onto the next line defines nothing, a definition under
+a title written on a line of its own is that paragraph's text, and so is
+one indented four columns under another, where CommonMark takes the
+indentation off; one on a list item's marker line is not read, as nothing
+there is but the item; `[^1]: text` is a footnote, as GitHub reads it; and a
+second bracket of nothing but spaces, `[r][ ]`, is read as `[r][]`, where
+commonmark.js looks up an empty label and finds nothing. *Amended
+2026-09-28*: a definition was read at the start of any line, and its label
+could hold a `[`, so `Some text` over `[r]: r.md` defined `r`, and
+`[[r]: r.md](z.md)` defined `r.md](z.md)`; a second bracket holding a
+bracket left the first unread. Against commonmark.js 0.31.2, 37 of 95 cases
+on definitions and labels disagreed, and 11 do now: ten are the
+simplifications named here, and one is `===` under a definition, which the
+heading reader takes for a setext underline.
 
 **Three masks, one for each question a tool asks**, all preserving every
 offset and line terminator:
