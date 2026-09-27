@@ -33,8 +33,9 @@ export default {
   timeoutMS: 5000,
 
   // Measured 95.37% at cbe2223 and 94.89% at 8840d36, apart by little more
-  // than the mutants that timed out in one sweep and survived the other. The
-  // break sits under the last measurement by more than that swing, and moves
-  // up with the measurement, never down (docs/adr/0007-verification.md).
-  thresholds: { high: 97, low: 93, break: 94 },
+  // than the mutants that timed out in one sweep and survived the other; then
+  // 95.42% at c78de30 and 95.56% at 119345e. The break sits under the last
+  // measurements by more than that swing, and moves up with the measurement,
+  // never down (docs/adr/0007-verification.md).
+  thresholds: { high: 97, low: 93, break: 94.5 },
 };

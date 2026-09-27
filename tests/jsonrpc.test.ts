@@ -14,12 +14,10 @@ import {
   INVALID_PARAMS,
   INVALID_REQUEST,
   LEGACY_PROTOCOL_VERSIONS,
-  LEGACY_RESOURCE_NOT_FOUND,
   METHOD_NOT_FOUND,
   PARSE_ERROR,
   PROTOCOL_VERSION_KEY,
   SERVER_INFO_KEY,
-  UNSUPPORTED_PROTOCOL_VERSION,
   type ByteSource,
   type JsonObject,
   type McpServerDefinition,
@@ -143,8 +141,9 @@ describe('tools, resources and prompts', () => {
     expect(result(await call('resources/list'))).toEqual({ resources: [{ uri: 'demo://a', name: 'a' }] });
     expect(result(await call('resources/templates/list'))).toEqual({ resourceTemplates: [{ uriTemplate: 'demo://{x}', name: 'x' }] });
     expect(result(await call('resources/read', { uri: 'demo://a' }))).toEqual({ contents: [{ uri: 'demo://a', text: 'A' }] });
+    // The code as the specification writes it, not read from the constant.
     expect(failure(await call('resources/read', { uri: 'demo://b' }))).toEqual({
-      code: LEGACY_RESOURCE_NOT_FOUND,
+      code: -32002,
       message: 'Resource not found',
       data: { uri: 'demo://b' },
     });
@@ -218,8 +217,9 @@ describe('the modern era', () => {
   });
 
   it('refuses a version it does not speak, and a malformed claim', async () => {
+    // The code as the specification writes it, not read from the constant.
     expect(failure(await call('tools/list', { _meta: { ...MODERN_META, [PROTOCOL_VERSION_KEY]: '2030-01-01' } }))).toEqual({
-      code: UNSUPPORTED_PROTOCOL_VERSION,
+      code: -32022,
       message: 'Unsupported protocol version',
       data: { supported: ['2026-07-28'], requested: '2030-01-01' },
     });
