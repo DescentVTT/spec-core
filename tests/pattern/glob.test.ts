@@ -107,10 +107,10 @@ describe('the syntax every dialect shares', () => {
     ['src/[a/b]', 'a "[" is never closed'],
     ['src/{a,b', 'a "{" is never closed'],
     ['src/[z-a]', 'the range "z-a" runs backwards'],
-    ['docs/**.md', '"**" means any number of directories only as a whole segment: write "docs/**/*.md" for any depth, or "*.md" for one level'],
-    ['**.ts', '"**" means any number of directories only as a whole segment: write "docs/**/*.md" for any depth, or "*.md" for one level'],
-    ['a**b/c', '"**" means any number of directories only as a whole segment: write "docs/**/*.md" for any depth, or "*.md" for one level'],
-    ['src/***', '"**" means any number of directories only as a whole segment: write "docs/**/*.md" for any depth, or "*.md" for one level'],
+    ['docs/**.md', '"**" means any number of directories only as a whole segment: write "docs/**/*.md" for any depth, or "docs/*.md" for one level'],
+    ['**.ts', '"**" means any number of directories only as a whole segment: write "**/*.ts" for any depth, or "*.ts" for one level'],
+    ['a**b/c', '"**" means any number of directories only as a whole segment: write "a*/**/*b/c" for any depth, or "a*b/c" for one level'],
+    ['src/***', '"**" means any number of directories only as a whole segment: write "src/**" for any depth, or "src/*" for one level'],
     ['../src', 'a pattern cannot climb out of its root with ".."'],
     ['src\\app', '"\\" escapes glob syntax; separate directories with "/"'],
     ['src\\', '"\\" escapes glob syntax; separate directories with "/"'],
@@ -118,6 +118,40 @@ describe('the syntax every dialect shares', () => {
     ['/', 'the pattern names the root itself, not a path under it'],
   ])('refuses %j: %s', (pattern, reason) => {
     expect(error(pattern)).toBe(reason);
+  });
+
+  it('refuses ** inside a name with the two patterns the writer may have meant, built from theirs', () => {
+    const advice = (pattern: string, options: GlobOptions = PATH): string =>
+      error(pattern, options).replace('"**" means any number of directories only as a whole segment: ', '');
+    // A name before the stars keeps one, and so does a name after them.
+    expect(advice('src/a**')).toBe('write "src/a*/**" for any depth, or "src/a*" for one level');
+    expect(advice('a**b**c')).toBe('write "a*/**/*b*/**/*c" for any depth, or "a*b*c" for one level');
+    // What is not a run of stars inside a name is left as written: a leading
+    // `./` or `/`, braces, a class, an escaped star, a trailing `/`, and a
+    // globstar that already is a whole segment.
+    expect(advice('./docs/**.md')).toBe('write "./docs/**/*.md" for any depth, or "./docs/*.md" for one level');
+    expect(advice('/docs/**.md')).toBe('write "/docs/**/*.md" for any depth, or "/docs/*.md" for one level');
+    expect(advice('src/**.{ts,tsx}')).toBe('write "src/**/*.{ts,tsx}" for any depth, or "src/*.{ts,tsx}" for one level');
+    expect(advice('{docs,notes}/**.md')).toBe('write "{docs,notes}/**/*.md" for any depth, or "{docs,notes}/*.md" for one level');
+    expect(advice('src/[**]x/**.md')).toBe('write "src/[**]x/**/*.md" for any depth, or "src/[**]x/*.md" for one level');
+    expect(advice('[\\]**]x**')).toBe('write "[\\]**]x*/**" for any depth, or "[\\]**]x*" for one level');
+    expect(advice('x\\**/docs/**.md')).toBe('write "x\\**/docs/**/*.md" for any depth, or "x\\**/docs/*.md" for one level');
+    expect(advice('docs/**.md/')).toBe('write "docs/**/*.md/" for any depth, or "docs/*.md/" for one level');
+    expect(advice('a/**/b**')).toBe('write "a/**/b*/**" for any depth, or "a/**/b*" for one level');
+    expect(advice('a/***/b')).toBe('write "a/**/b" for any depth, or "a/*/b" for one level');
+    // It mends the stars and nothing else: a class never closed is refused next.
+    expect(advice('src/a**/[b')).toBe('write "src/a*/**/[b" for any depth, or "src/a*/[b" for one level');
+    // Typed on a Windows shell, the advice is written with `/`.
+    expect(advice('docs\\**.md', { ...PATH, backslash: 'separator' })).toBe('write "docs/**/*.md" for any depth, or "docs/*.md" for one level');
+  });
+
+  it('advises patterns that compile, beside a brace too', () => {
+    for (const pattern of ['docs/**.md', 'src/a**', 'a**b**c', 'docs/{**.md,*.txt}', 'x{a**,b}y', '[\\]**]x**', 'a\\***', 'a/***/b']) {
+      const [, deep, flat] = /write "(.*)" for any depth, or "(.*)" for one level$/.exec(error(pattern)) as RegExpExecArray;
+      expect(parseGlob(deep as string, PATH).ok, `${pattern}: ${deep}`).toBe(true);
+      expect(parseGlob(flat as string, PATH).ok, `${pattern}: ${flat}`).toBe(true);
+    }
+    expect(error('docs/{**.md,*.txt}')).toContain('write "docs/{*/**/*.md,*.txt}" for any depth');
   });
 
   it('reads parentheses without a bar in them as characters of a name', () => {
