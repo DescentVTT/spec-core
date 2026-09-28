@@ -301,6 +301,48 @@ describe('the path dialect', () => {
     expect(matches('src/', 'src')).toBe(false);
   });
 
+  it('reads a trailing slash on a brace alternative as it reads one on the pattern: the contents', () => {
+    // Braces expand first, so `src/` inside them is `src/` on its own.
+    for (const pattern of ['src/', '{src,lib}/', '{src/,lib}', '{lib,src/}', '{src/,lib/}', '{src//,lib}', '{x,{src/,y}}', './{src/,lib}']) {
+      expect(matches(pattern, 'src/a/b'), pattern).toBe(true);
+      expect(matches(pattern, 'src'), pattern).toBe(false);
+    }
+    // The alternative with no slash is still a literal, read as either.
+    expect(matches('{src/,lib}', 'lib')).toBe(true);
+    expect(matches('{src/,lib}', 'lib/a')).toBe(true);
+    // Deeper, and beside an alternative with glob syntax, which it leaves alone.
+    expect(matches('{docs/adr/,*.md}', 'docs/adr/0001.md')).toBe(true);
+    expect(matches('{docs/adr/,*.md}', 'docs/adr')).toBe(false);
+    expect(matches('{docs/adr/,*.md}', 'a.md')).toBe(true);
+    expect(matches('{docs/adr/,*.md}', 'docs/a.md')).toBe(false);
+    // A slash before the end of an alternative is a separator, not a trailing one.
+    expect(matches('{src/,lib}x', 'src/x')).toBe(true);
+    expect(matches('{src/,lib}x', 'src/x/y')).toBe(true);
+    expect(matches('{src/,lib}x', 'src/y')).toBe(false);
+  });
+
+  it('asks nothing about an alternative written as a directory, and walks into it', () => {
+    const asked: string[] = [];
+    const glob = compileGlob('{src/,lib}', {
+      ...PATH,
+      literal: (path) => {
+        asked.push(path);
+        return 'file';
+      },
+    });
+    expect(asked).toEqual(['lib']);
+    expect(glob.match('src/a.ts')).toBe(true);
+    expect(glob.match('lib')).toBe(true);
+    expect(glob.match('lib/a.ts')).toBe(false);
+    expect(glob.bases).toEqual(['src', '']);
+  });
+
+  it('refuses an alternative that is only a slash: it names the root, not everything under it', () => {
+    expect(error('{/,a}')).toBe('the pattern names no path');
+    expect(error('{//,a}')).toBe('the pattern names no path');
+    expect(error('{/,a}', RIPGREP)).toBe('the pattern names no path');
+  });
+
   it('roots a pattern with a leading slash at the root of the filesystem', () => {
     expect(matches('/repo/docs/*.md', '/repo/docs/a.md')).toBe(true);
     expect(matches('/repo/docs/*.md', 'repo/docs/a.md')).toBe(false);
@@ -341,6 +383,17 @@ describe('the ripgrep dialect', () => {
     expect(glob.match('docs/a.md')).toBe(true);
     expect(glob.match('x/docs/a.md')).toBe(false);
   });
+
+  it('reads an alternative with a trailing slash as `src/` alone: the contents, matched against the whole path', () => {
+    const glob = compileGlob('{src/,*.md}', RIPGREP);
+    expect(glob.match('src/deep/a.ts')).toBe(true);
+    expect(glob.match('src')).toBe(false);
+    // Not a name at any depth: the slash makes it a whole path.
+    expect(glob.match('lib/src')).toBe(false);
+    expect(glob.match('lib/src/a.ts')).toBe(false);
+    expect(glob.match('lib/a.md')).toBe(true);
+    expect(glob.bases).toEqual(['src', '']);
+  });
 });
 
 describe('the gitignore dialect', () => {
@@ -363,9 +416,18 @@ describe('the gitignore dialect', () => {
     expect(matches('build/', 'build', GITIGNORE)).toBe(true);
     expect(matches('build/', 'x/build/y', GITIGNORE)).toBe(true);
     // At the end of a brace alternative too, and a `.` segment names nothing:
-    // neither is a slash that anchors.
+    // neither is a slash that anchors, and the directory is excluded with
+    // what is in it, where the other dialects read the slash as contents.
     expect(matches('{build/,dist}', 'x/build/y', GITIGNORE)).toBe(true);
+    expect(matches('{build/,dist}', 'x/build', GITIGNORE)).toBe(true);
+    expect(matches('{dist,build/}', 'build', GITIGNORE)).toBe(true);
+    expect(matches('{build//,dist}', 'x/build', GITIGNORE)).toBe(true);
+    expect(compileGlob('{build/,dist}', GITIGNORE).bases).toEqual(['']);
     expect(matches('build/.', 'x/build/y', GITIGNORE)).toBe(true);
+    // A slash inside the alternative still anchors it.
+    expect(matches('{src/gen/,dist}', 'src/gen', GITIGNORE)).toBe(true);
+    expect(matches('{src/gen/,dist}', 'src/gen/a.ts', GITIGNORE)).toBe(true);
+    expect(matches('{src/gen/,dist}', 'x/src/gen/a.ts', GITIGNORE)).toBe(false);
   });
 
   it('names no base for a floating pattern', () => {

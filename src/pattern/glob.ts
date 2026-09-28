@@ -26,6 +26,9 @@
  *   tools read it three ways, and the quiet reading narrowed their scope. The
  *   refusal writes the two patterns it may have meant from the one written.
  * - `*`, `?` and classes never match `/`, and `*` matches a leading dot.
+ * - Braces expand first, and each alternative reads as it would written on
+ *   its own: `{src/,lib}` is `src/` or `lib`, and a trailing `/` means the
+ *   directory's contents - in an exclusion, the directory and its contents.
  * - Case is the caller's decision, stated every time. A result must not
  *   depend on the host it ran on.
  * - A malformed pattern is an error, never a literal. An unclosed `[` or `{`,
@@ -59,7 +62,8 @@ export interface GlobOptions {
    * `path` dialect only: how a pattern with no glob syntax is read - as a
    * file, as a directory and everything beneath it, or as either. A function
    * is asked per literal path, for a caller that knows the tree. `either` when
-   * unset. A trailing `/` always means a directory.
+   * unset. A trailing `/`, on the pattern or on one of its brace alternatives,
+   * always means a directory's contents, and is never asked about.
    */
   readonly literal?: LiteralReading | ((path: string) => LiteralReading) | undefined;
   /**
@@ -150,12 +154,6 @@ function build(source: string, options: GlobOptions): Glob | string {
     else rooted = true;
     pattern = pattern.replace(/^\/+/, '');
   }
-  // A trailing slash means a directory's contents, except in an exclusion,
-  // where `build/` and `build` exclude the same things.
-  if (pattern.endsWith('/')) {
-    pattern = pattern.replace(/\/+$/, '');
-    if (options.dialect !== 'gitignore') pattern = `${pattern}/**`;
-  }
   if (pattern.length === 0) return 'the pattern names the root itself, not a path under it';
 
   const expanded = expandBraces(pattern, escapes);
@@ -163,7 +161,7 @@ function build(source: string, options: GlobOptions): Glob | string {
 
   const alternatives: Alternative[] = [];
   for (const text of expanded) {
-    const parsed = parseAlternative(text, escapes);
+    const parsed = parseAlternative(trailingSlash(text, options.dialect), escapes);
     if (parsed === GLOBSTAR_IN_NAME) return `${GLOBSTAR_IN_NAME}: ${globstarAdvice(written)}`;
     if (typeof parsed === 'string') return parsed;
     alternatives.push(parsed);
@@ -289,6 +287,26 @@ function classEnd(pattern: string, open: number, escapes: boolean): number {
 }
 
 /* ---------------------------------------------------------------- segments */
+
+/**
+ * What a trailing slash means, read on each alternative the braces give, so
+ * that `{src/,lib}` reads `src/` as `src/` alone reads: the directory's
+ * contents, `src/**`, and not a literal that may be the directory itself.
+ *
+ * In an exclusion `build/` excludes what `build` does. Git's rule is that a
+ * trailing slash matches only a directory, and a directory is excluded with
+ * everything in it; a matcher that sees only a path cannot tell a directory
+ * from a file, so the slash is dropped, and it anchors nothing. An
+ * alternative that is only slashes names the root, which `parseAlternative`
+ * refuses as naming no path.
+ *
+ * The whole run of slashes is taken, so that `{//,a}` is refused as `{/,a}`
+ * is; taken lazily it is the whole run all the same, since it ends the text.
+ */
+function trailingSlash(text: string, dialect: GlobDialect): string {
+  const name = text.replace(/\/+$/, '');
+  return name === text || name === '' || dialect === 'gitignore' ? name : `${name}/**`;
+}
 
 function parseAlternative(text: string, escapes: boolean): Alternative | string {
   const segments: Segment[] = [];

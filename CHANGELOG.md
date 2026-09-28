@@ -5,6 +5,20 @@ copies a module names the spec-core commit in its own changelog.
 
 ## Unreleased
 
+### Changed since 65ef842
+
+What the tools that copied 65ef842 - all four - see when they copy again.
+
+- `pattern`: a trailing `/` on a brace alternative means that directory's
+  contents, as one on the whole pattern does. In the `path` dialect
+  `{src/,lib}` matches `src/a.ts` and not `src`, where it matched `src`
+  itself as a literal, read by `literal` as a file, a directory or either;
+  `src` is no longer passed to a `literal` function, and the alternative's
+  base is `src` where it was `''`. In the `ripgrep` dialect the alternative
+  is matched against the whole path, as `src/` is: `{src/,*.md}` matches
+  `src/deep/a.ts` and no longer `lib/src`. The `gitignore` dialect reads it
+  as before, the directory and everything in it (ADR-0003).
+
 ### Changed since 119345e
 
 What the tools that copied 119345e see when they copy again.
