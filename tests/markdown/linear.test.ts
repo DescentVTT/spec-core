@@ -30,7 +30,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { scanMarkdown, sectionsOf, type MarkdownScan } from '../../src/markdown/index.js';
-import { fastestInTurn } from './timing.js';
+import { fastestInTurn } from '../timing.js';
 
 /** A scan with every part it makes when first asked for already made. */
 function scanWhole(text: string): MarkdownScan {

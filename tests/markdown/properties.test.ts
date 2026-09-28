@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 import { scanMarkdown, type MarkdownScan } from '../../src/markdown/index.js';
 import { generate, random, WILD } from './corpus.js';
-import { fastest, instrumented } from './timing.js';
+import { fastestInTurn, instrumented } from '../timing.js';
 
 const LF = 10;
 const CR = 13;
@@ -180,7 +180,7 @@ describe('the reading does not depend on how lines end', () => {
 });
 
 describe('time', () => {
-  it('scans a megabyte of generated Markdown in well under a second', () => {
+  it('scans a megabyte of generated Markdown in the time a sixteenth of it takes sixteen times over', () => {
     const rand = random(7);
     const parts: string[] = [];
     let size = 0;
@@ -190,8 +190,32 @@ describe('time', () => {
       size += part.length + 2;
     }
     const text = parts.join('\n\n');
+    const sixteenth = parts.slice(0, Math.ceil(parts.length / 16)).join('\n\n');
     expect(scanMarkdown(text).headings.length).toBeGreaterThan(1000);
-    const best = fastest(3, () => scanMarkdown(text));
-    if (!instrumented()) expect(best).toBeLessThan(1000);
+    // A ratio, which a slow or busy machine keeps: under a second, as this
+    // said, was 915 ms on one running other suites. The same work takes about
+    // as long either way, and ordinary documents hold none of the shapes that
+    // make work grow as the square root of the input cubed, which the
+    // documents built to be hostile hold to twice; this allows four times,
+    // and work that grows with the square of it reads sixteen. Instrumented,
+    // a megabyte scanned twice more for every mutant that reaches the scanner
+    // costs a sweep most of an hour, and the hostile documents hold the scan
+    // to linear time there.
+    if (instrumented()) return;
+    const whole = (markdown: string): void => {
+      const scan = scanMarkdown(markdown);
+      void scan.links;
+      void scan.listItems;
+      void scan.masks.directives;
+    };
+    whole(sixteenth);
+    const [sixteenSmall, oneLarge] = fastestInTurn(
+      2,
+      () => {
+        for (let i = 0; i < 16; i += 1) whole(sixteenth);
+      },
+      () => whole(text),
+    ) as [number, number];
+    expect(oneLarge).toBeLessThan(4 * sixteenSmall + 100);
   });
 });
