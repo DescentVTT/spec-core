@@ -57,6 +57,12 @@ interface Hole {
  */
 export const MAX_STATES = 65_536;
 
+/**
+ * Thrown by the builder past {@link MAX_STATES}. `parseGlob` answers it as a
+ * refusal and `compileGlob` as a `GlobError`, so no function the pattern
+ * module exports lets it out; it stays exported for callers written when
+ * `parseGlob` did.
+ */
 export class AutomatonTooLarge extends Error {
   constructor() {
     super(`the pattern compiles to more than ${MAX_STATES} states`);

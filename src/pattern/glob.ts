@@ -39,6 +39,7 @@
  */
 
 import {
+  AutomatonTooLarge,
   Builder,
   findWitness,
   Matcher,
@@ -122,13 +123,20 @@ export function isGlobSyntax(source: string): boolean {
   return /[*?[\]{}]/.test(source);
 }
 
-/** Parses and compiles a glob, or says why it cannot. */
+/**
+ * Parses and compiles a glob, or says why it cannot: malformed, or too large
+ * to compile, past {@link MAX_ALTERNATIVES} alternatives or `MAX_STATES`
+ * states. It throws only what a `literal` function throws.
+ */
 export function parseGlob(source: string, options: GlobOptions): GlobParse {
   const result = build(source, options);
   return typeof result === 'string' ? { ok: false, error: result } : { ok: true, glob: result };
 }
 
-/** Parses and compiles a glob, throwing {@link GlobError} when it cannot. */
+/**
+ * Parses and compiles a glob, throwing {@link GlobError} for every reason
+ * {@link parseGlob} gives, and what a `literal` function throws.
+ */
 export function compileGlob(source: string, options: GlobOptions): Glob {
   const result = build(source, options);
   if (typeof result === 'string') throw new GlobError(source, result);
@@ -170,12 +178,21 @@ function build(source: string, options: GlobOptions): Glob | string {
   const builder = new Builder();
   const fragments: Fragment[] = [];
   const bases: string[] = [];
-  for (const alternative of alternatives) {
-    const compiled = compileAlternative(builder, alternative, options, rooted, anchored);
-    fragments.push(compiled.fragment);
-    bases.push(compiled.base);
+  let automaton: Automaton;
+  try {
+    for (const alternative of alternatives) {
+      const compiled = compileAlternative(builder, alternative, options, rooted, anchored);
+      fragments.push(compiled.fragment);
+      bases.push(compiled.base);
+    }
+    automaton = builder.finish(builder.either(fragments), options.caseSensitive);
+  } catch (error) {
+    // A pattern too large to compile is refused with a reason, as a malformed
+    // one is. Anything else - a caller's literal reading that throws - is the
+    // caller's failure, not the pattern's, and goes on up.
+    if (error instanceof AutomatonTooLarge) return error.message;
+    throw error;
   }
-  const automaton = builder.finish(builder.either(fragments), options.caseSensitive);
   let matcher: Matcher | null = null;
   return {
     source,
