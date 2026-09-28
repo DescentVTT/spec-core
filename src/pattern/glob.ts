@@ -201,6 +201,12 @@ function build(source: string, options: GlobOptions): Glob | string {
  * Classes and escapes are skipped while looking for braces and commas, so
  * `{[,]x,y}` is two alternatives, `[,]x` and `y`. A lone `}` is a literal: it
  * cannot be read as anything else. An unclosed `{` is an error.
+ *
+ * Here and in the two functions after it, a loop that reads one step past
+ * the end reads `''`, which none of them acts on, and `classEnd` answers -1
+ * or an index past the `[`, so `close > 0` and `close >= 0` read the same.
+ * `open` is set by the `{` that any `}` read here closes, so its first value
+ * is never read.
  */
 function expandBraces(pattern: string, escapes: boolean): string[] | string {
   let depth = 0;

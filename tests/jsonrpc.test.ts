@@ -8,6 +8,7 @@ import {
   serveLines,
   toolError,
   unknownArguments,
+  ProtocolError,
   CLIENT_CAPABILITIES_KEY,
   CLIENT_INFO_KEY,
   INTERNAL_ERROR,
@@ -87,6 +88,13 @@ describe('the legacy era', () => {
     });
     expect(result(await call('initialize', { protocolVersion: '1999-01-01' }))['protocolVersion']).toBe(LEGACY_PROTOCOL_VERSIONS[0]);
     expect(negotiateLegacyVersion(42)).toBe(LEGACY_PROTOCOL_VERSIONS[0]);
+    // Written out, as a client asks for them: each revision the SDK
+    // negotiates is answered in its own terms, and one it does not know in
+    // the newest.
+    for (const version of ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05', '2024-10-07']) {
+      expect(result(await call('initialize', { protocolVersion: version }))['protocolVersion'], version).toBe(version);
+    }
+    expect(result(await call('initialize', { protocolVersion: '1999-01-01' }))['protocolVersion']).toBe('2025-11-25');
   });
 
   it('declares only the capabilities it has', async () => {
@@ -99,6 +107,11 @@ describe('the legacy era', () => {
     }
     // A method that merely starts like one is still unknown.
     expect(failure(await bare({ jsonrpc: '2.0', id: 3, method: 'toolsy' })).code).toBe(METHOD_NOT_FOUND);
+    // What it does declare it serves, beside what it does not: resources
+    // without tools, and no templates as an empty list of them.
+    const reader = createMcpServer({ name: 'n', version: '0', instructions: '', resources: { list: async () => [], read: async () => null } });
+    expect(result(await reader({ jsonrpc: '2.0', id: 4, method: 'resources/list' }))).toEqual({ resources: [] });
+    expect(result(await reader({ jsonrpc: '2.0', id: 5, method: 'resources/templates/list' }))).toEqual({ resourceTemplates: [] });
   });
 
   it('answers ping, and refuses server/discover, which is modern only', async () => {
@@ -167,7 +180,7 @@ describe('tools, resources and prompts', () => {
 
   it('refuses a cursor on every list, since it never issues one', async () => {
     for (const method of ['tools/list', 'resources/list', 'resources/templates/list', 'prompts/list']) {
-      expect(failure(await call(method, { cursor: 'x' })).code).toBe(INVALID_PARAMS);
+      expect(failure(await call(method, { cursor: 'x' }))).toEqual({ code: INVALID_PARAMS, message: 'Invalid cursor: this server does not paginate.' });
     }
   });
 
@@ -187,6 +200,8 @@ describe('the modern era', () => {
     expect(classifyRequest('tools/list', undefined)).toBe('legacy');
     expect(classifyRequest('tools/list', { _meta: MODERN_META })).toBe('modern');
     expect(classifyRequest('initialize', { _meta: { [PROTOCOL_VERSION_KEY]: 'nope' } })).toBe('legacy');
+    // `initialize` is the handshake unless its claim is valid, whatever version it names.
+    expect(classifyRequest('initialize', { _meta: { [PROTOCOL_VERSION_KEY]: '2026-07-28' } })).toBe('legacy');
     expect(() => classifyRequest('tools/list', { _meta: { [PROTOCOL_VERSION_KEY]: '2026-07-28' } })).toThrow(
       `Invalid _meta envelope: ${CLIENT_CAPABILITIES_KEY}: missing`,
     );
@@ -234,6 +249,10 @@ describe('the modern era', () => {
       { [CLIENT_CAPABILITIES_KEY]: {}, [PROTOCOL_VERSION_KEY]: 'v', [CLIENT_INFO_KEY]: { name: 'a' } },
       `${CLIENT_INFO_KEY}: expected an object with a string name and version`,
     ],
+    [
+      { [CLIENT_CAPABILITIES_KEY]: {}, [PROTOCOL_VERSION_KEY]: 'v', [CLIENT_INFO_KEY]: { name: 1, version: 'b' } },
+      `${CLIENT_INFO_KEY}: expected an object with a string name and version`,
+    ],
     [{ [CLIENT_CAPABILITIES_KEY]: {}, [PROTOCOL_VERSION_KEY]: 'v', [CLIENT_INFO_KEY]: { name: 'a', version: 'b' } }, undefined],
     [{ [CLIENT_CAPABILITIES_KEY]: {}, [PROTOCOL_VERSION_KEY]: 'v' }, undefined],
   ])('finds %j to be %s', (meta, issue) => {
@@ -248,6 +267,8 @@ describe('messages that are not requests', () => {
     expect(await handle({ jsonrpc: '2.0', method: 'notifications/initialized' })).toBeNull();
     expect(await handle({ jsonrpc: '2.0', id: 3, result: {} })).toBeNull();
     expect(await handle({ jsonrpc: '2.0', id: 3, error: { code: 1, message: 'x' } })).toBeNull();
+    // A request that also carries a result is still a request.
+    expect(await handle({ jsonrpc: '2.0', id: 3, method: 'ping', result: {} })).toEqual({ jsonrpc: '2.0', id: 3, result: {} });
   });
 
   it.each([
@@ -257,6 +278,9 @@ describe('messages that are not requests', () => {
     [{ jsonrpc: '2.0', id: 1 }, 'Invalid Request', 1],
     [{ jsonrpc: '2.0', id: 1.5, method: 'ping' }, 'Invalid Request', undefined],
     [{ jsonrpc: '2.0', id: null, method: 'ping' }, 'Invalid Request', undefined],
+    // A response is owed nothing only when it is one: JSON-RPC 2.0, with an id.
+    [{ jsonrpc: '1.0', id: 1, result: {} }, 'Invalid Request', 1],
+    [{ jsonrpc: '2.0', id: null, result: {} }, 'Invalid Request', undefined],
   ])('refuses %j', async (message, text, id) => {
     const reply = await handle(message);
     expect(reply).toEqual({ jsonrpc: '2.0', ...(id === undefined ? {} : { id }), error: { code: INVALID_REQUEST, message: text } });
@@ -267,9 +291,34 @@ describe('messages that are not requests', () => {
       code: INVALID_PARAMS,
       message: 'params must be an object.',
     });
-    expect(failure(await handle({ jsonrpc: '2.0', id: 'a', method: 'nope' }))).toEqual({ code: METHOD_NOT_FOUND, message: 'Method not found' });
+    expect(await handle({ jsonrpc: '2.0', id: 'a', method: 'nope' })).toEqual({
+      jsonrpc: '2.0',
+      id: 'a',
+      error: { code: METHOD_NOT_FOUND, message: 'Method not found' },
+    });
+    // What a tool prints when it lets the error through names its kind.
+    expect(String(new ProtocolError(INVALID_PARAMS, 'params must be an object.'))).toBe('ProtocolError: params must be an object.');
   });
 });
+
+/**
+ * Whether serving has ended by the next turn of the event loop. It ends when
+ * its input and the requests still running have, and waits on nothing else,
+ * so a test asks this rather than waiting for a promise that may never settle.
+ */
+async function settles(done: Promise<unknown>): Promise<boolean> {
+  let settled = false;
+  done.then(
+    () => {
+      settled = true;
+    },
+    () => {
+      settled = true;
+    },
+  );
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  return settled;
+}
 
 /** A byte source a test drives by hand. */
 function source(): ByteSource & { push(text: string): void; end(): void; fail(error: Error): void } {
@@ -280,7 +329,9 @@ function source(): ByteSource & { push(text: string): void; end(): void; fail(er
   };
   const encoder = new TextEncoder();
   return {
-    on: (_event: 'data', listener: (chunk: Uint8Array) => void) => listeners.data.push(listener),
+    // Under the event named, as a stream keeps them: a listener for any
+    // other event hears no data.
+    on: (event: 'data', listener: (chunk: Uint8Array) => void) => (listeners[event] as unknown[] | undefined)?.push(listener),
     once: ((event: 'end' | 'error', listener: never) => (listeners[event] as unknown[]).push(listener)) as ByteSource['once'],
     push: (text) => {
       for (const listener of listeners.data) listener(encoder.encode(text));
@@ -304,12 +355,22 @@ describe('serving lines', () => {
     input.push('not json\n');
     input.push('{"jsonrpc":"2.0","id":2,"method":"ping"}');
     input.end();
-    await done;
+    expect(await settles(done)).toBe(true);
     expect(written.map((line) => JSON.parse(line))).toEqual([
       { jsonrpc: '2.0', error: { code: PARSE_ERROR, message: 'Parse error' } },
       { jsonrpc: '2.0', id: 1, result: {} },
       { jsonrpc: '2.0', id: 2, result: {} },
     ]);
+  });
+
+  it('answers each of several messages that arrive in one chunk', async () => {
+    const input = source();
+    const written: string[] = [];
+    const done = serveLines(input, (line) => written.push(line), server());
+    input.push('{"jsonrpc":"2.0","id":1,"method":"ping"}\n{"jsonrpc":"2.0","id":2,"method":"ping"}\n');
+    input.end();
+    expect(await settles(done)).toBe(true);
+    expect(written.map((line) => JSON.parse(line)['id'])).toEqual([1, 2]);
   });
 
   it('decodes a character split across chunks', async () => {
@@ -329,7 +390,7 @@ describe('serving lines', () => {
     data.forEach((listener) => listener(encoded.slice(0, at)));
     data.forEach((listener) => listener(encoded.slice(at)));
     end.forEach((listener) => listener());
-    await done;
+    expect(await settles(done)).toBe(true);
     expect(written.map((line) => JSON.parse(line))).toEqual([{ jsonrpc: '2.0', id: accented, result: {} }]);
   });
 
@@ -354,8 +415,60 @@ describe('serving lines', () => {
     input.push('{"jsonrpc":"2.0","method":"notifications/cancelled","params":[]}\n');
     input.end();
     release();
-    await done;
+    expect(await settles(done)).toBe(true);
     expect(written.map((line) => JSON.parse(line)['id'])).toEqual(['1']);
+  });
+
+  it('tells the id 1 from the id "1" when either is cancelled', async () => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const slow = createMcpServer({
+      name: 'slow',
+      version: '0',
+      instructions: '',
+      tools: [{ descriptor: { name: 'wait' }, call: async () => (await gate, { text: 'done' }) }],
+    });
+    const input = source();
+    const written: string[] = [];
+    const done = serveLines(input, (line) => written.push(line), slow);
+    input.push('{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"wait"}}\n');
+    input.push('{"jsonrpc":"2.0","id":"1","method":"tools/call","params":{"name":"wait"}}\n');
+    input.push('{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":"1"}}\n');
+    input.end();
+    release();
+    expect(await settles(done)).toBe(true);
+    expect(written.map((line) => JSON.parse(line)['id'])).toEqual([1]);
+  });
+
+  it('ignores a cancellation for a request that has finished, or never began', async () => {
+    const input = source();
+    const written: string[] = [];
+    const done = serveLines(input, (line) => written.push(line), server());
+    input.push('{"jsonrpc":"2.0","id":1,"method":"ping"}\n');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    input.push('{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":1}}\n');
+    input.push('{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":2}}\n');
+    input.push('{"jsonrpc":"2.0","id":1,"method":"ping"}\n');
+    input.push('{"jsonrpc":"2.0","id":2,"method":"ping"}\n');
+    input.end();
+    expect(await settles(done)).toBe(true);
+    expect(written.map((line) => JSON.parse(line)['id'])).toEqual([1, 1, 2]);
+  });
+
+  it('stays open while the input does, though nothing is running', async () => {
+    const input = source();
+    let resolved = false;
+    const done = serveLines(input, () => undefined, server()).then(() => {
+      resolved = true;
+    });
+    input.push('{"jsonrpc":"2.0","id":1,"method":"ping"}\n');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(resolved).toBe(false);
+    input.end();
+    expect(await settles(done)).toBe(true);
+    expect(resolved).toBe(true);
   });
 
   it('answers requests in the order they finish, and waits for them before resolving', async () => {
@@ -384,7 +497,7 @@ describe('serving lines', () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(resolved).toBe(false);
     releaseFirst();
-    await done;
+    expect(await settles(done)).toBe(true);
     expect(order).toEqual(['b', 'a']);
   });
 
@@ -392,6 +505,7 @@ describe('serving lines', () => {
     const input = source();
     const done = serveLines(input, () => undefined, server());
     input.fail(new Error('closed'));
+    expect(await settles(done)).toBe(true);
     await expect(done).rejects.toThrow('closed');
   });
 
@@ -401,7 +515,7 @@ describe('serving lines', () => {
     const done = serveLines(input, (line) => written.push(line), server());
     input.push('{"jsonrpc":"2.0","method":"notifications/initialized"}\n');
     input.end();
-    await done;
+    expect(await settles(done)).toBe(true);
     expect(written).toEqual([]);
   });
 });
@@ -424,7 +538,7 @@ describe('what the specifications fix', () => {
     const done = serveLines(input, (line) => written.push(line), handle);
     input.push('not json\n');
     input.end();
-    await done;
+    expect(await settles(done)).toBe(true);
     expect(written).toEqual(['{"jsonrpc":"2.0","error":{"code":-32700,"message":"Parse error"}}']);
   });
 

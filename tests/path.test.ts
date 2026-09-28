@@ -98,6 +98,8 @@ describe('host paths and link destinations', () => {
   it.each([
     ['../docs/a.md', true],
     ['a.md#section', true],
+    // A colon past the start names no scheme.
+    ['guide.md#step:2', true],
     ['#section', false],
     ['', false],
     ['/root.md', false],
@@ -112,6 +114,8 @@ describe('host paths and link destinations', () => {
     expect(splitReference('a.md#b')).toEqual({ path: 'a.md', suffix: '#b' });
     expect(splitReference('a.md?x=1#b')).toEqual({ path: 'a.md', suffix: '?x=1#b' });
     expect(splitReference('a.md')).toEqual({ path: 'a.md', suffix: '' });
+    // A fragment alone points into the file that holds it: no path.
+    expect(splitReference('#usage')).toEqual({ path: '', suffix: '#usage' });
   });
 
   it('normalises general POSIX paths, keeping what a relative path climbs', () => {
@@ -122,5 +126,7 @@ describe('host paths and link destinations', () => {
     expect(normalisePosix('/')).toBe('/');
     expect(joinPosix('a', '', 'b/../c')).toBe('a/c');
     expect(joinPosix('/root', 'x')).toBe('/root/x');
+    // An empty part is nothing to join, not the root.
+    expect(joinPosix('', 'docs/a.md')).toBe('docs/a.md');
   });
 });

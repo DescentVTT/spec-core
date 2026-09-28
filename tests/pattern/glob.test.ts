@@ -7,8 +7,10 @@ import {
   isGlobSyntax,
   parseGlob,
   parseGlobList,
+  AutomatonTooLarge,
   GlobError,
   MAX_ALTERNATIVES,
+  MAX_STATES,
   type GlobOptions,
 } from '../../src/pattern/index.js';
 
@@ -40,6 +42,7 @@ describe('the syntax every dialect shares', () => {
     ['src/[a-c].ts', 'src/b.ts', true],
     ['src/[]a].ts', 'src/].ts', true],
     ['src/[a-].ts', 'src/-.ts', true],
+    ['src/[a-\\z].ts', 'src/m.ts', true],
     ['src/{a,b}.ts', 'src/b.ts', true],
     ['src/{a,b}.ts', 'src/c.ts', false],
     ['{src,lib}/**', 'lib/x/y.ts', true],
@@ -49,9 +52,24 @@ describe('the syntax every dialect shares', () => {
     ['src/\\*.ts', 'src/*.ts', true],
     ['src/\\*.ts', 'src/a.ts', false],
     ['src/a}.ts', 'src/a}.ts', true],
+    // An escaped brace or comma is a character, whether braces are open or not.
+    ['src/\\{a,b}.ts', 'src/{a,b}.ts', true],
+    ['src/\\{a,b}.ts', 'src/a.ts', false],
+    ['src/{a\\,b,c}.ts', 'src/a,b.ts', true],
+    ['src/{a\\,b,c}.ts', 'src/a.ts', false],
+    // A group that closes inside a group leaves the commas after it at the top.
+    ['src/{{a,b},c}.ts', 'src/c.ts', true],
+    // A class hides its commas from the braces, a negated one too, and its
+    // first member is a member even when it is `]`.
+    ['src/{[!],]x,y}.ts', 'src/ax.ts', true],
+    ['src/{[^],]x,y}.ts', 'src/ax.ts', true],
+    ['src/{[],]x,y}.ts', 'src/]x.ts', true],
+    ['src/[!]].ts', 'src/a.ts', true],
+    ['src/[!]].ts', 'src/].ts', false],
     ['./src/*.ts', 'src/a.ts', true],
     ['src//a.ts', 'src/a.ts', true],
     ['src/./a.ts', 'src/a.ts', true],
+    ['docs/./', 'docs/a.md', true],
   ])('%s against %s is %s', (pattern, path, expected) => {
     expect(matches(pattern, path)).toBe(expected);
   });
@@ -70,18 +88,29 @@ describe('the syntax every dialect shares', () => {
     expect(matches('**', 'x')).toBe(true);
     expect(matches('**', 'x/y/z')).toBe(true);
     expect(matches('a/**/**/b', 'a/b')).toBe(true);
+    // A run of globstars means what one means, and costs what one costs: the
+    // automaton, which bounds matching and a witness search's budget, is the same.
+    expect(compileGlob('a/**/**/b', PATH).automaton).toEqual(compileGlob('a/**/b', PATH).automaton);
+    expect(compileGlob('a/**/**', PATH).automaton).toEqual(compileGlob('a/**', PATH).automaton);
   });
 
   it('never lets a wildcard or a class cross a separator', () => {
     expect(matches('a*b', 'a/b')).toBe(false);
     expect(matches('a?b', 'a/b')).toBe(false);
     expect(matches('a[!x]b', 'a/b')).toBe(false);
+    // Nor when case is ignored.
+    const folded: GlobOptions = { ...PATH, caseSensitive: false };
+    expect(matches('a*b', 'a/b', folded)).toBe(false);
+    expect(matches('a[!x]b', 'a/b', folded)).toBe(false);
   });
 
   it('counts characters as code points, so ? matches one whatever its encoding', () => {
     expect(matches('?.md', '\u{1F600}.md')).toBe(true);
     expect(matches('??.md', '\u{1F600}.md')).toBe(false);
     expect(matches('[\u{1F600}-\u{1F64F}].md', '\u{1F610}.md')).toBe(true);
+    // The last code point one UTF-16 unit holds is one character, and so is
+    // the one after it.
+    expect(matches('?x', '\u{FFFF}x')).toBe(true);
   });
 
   it('takes case from the caller, the same on every host', () => {
@@ -93,6 +122,9 @@ describe('the syntax every dialect shares', () => {
     expect(matches('\u00c9t\u00e9.md', '\u00e9T\u00c9.md', { dialect: 'path', caseSensitive: false })).toBe(true);
     // No single-character upper case: matches only itself.
     expect(matches('\u00df.md', 'SS.md', { dialect: 'path', caseSensitive: false })).toBe(false);
+    expect(matches('S.md', '\u00df.md', { dialect: 'path', caseSensitive: false })).toBe(false);
+    // A title-case letter is neither its lower nor its upper case, and still itself.
+    expect(matches('\u01c5.md', '\u01c5.md', { dialect: 'path', caseSensitive: false })).toBe(true);
   });
 
   it.each([
@@ -102,11 +134,16 @@ describe('the syntax every dialect shares', () => {
     ['src/+(a|b)', 'extended globs such as "+(a|b)" are not supported: write alternatives as "{a,b}", and a literal parenthesis as "[(]"'],
     ['src/*(x|y).md', 'extended globs such as "+(a|b)" are not supported: write alternatives as "{a,b}", and a literal parenthesis as "[(]"'],
     ['src/@(a|b|c)', 'extended globs such as "+(a|b)" are not supported: write alternatives as "{a,b}", and a literal parenthesis as "[(]"'],
+    ['@(README|CHANGELOG).md', 'extended globs such as "+(a|b)" are not supported: write alternatives as "{a,b}", and a literal parenthesis as "[(]"'],
+    ['docs/*.+(md|mdx)', 'extended globs such as "+(a|b)" are not supported: write alternatives as "{a,b}", and a literal parenthesis as "[(]"'],
     ['!(a|b)/c', 'a negated pattern is a list entry, not a glob; narrow the positive pattern'],
     ['src/[ab', 'a "[" is never closed'],
     ['src/[a/b]', 'a "[" is never closed'],
     ['src/{a,b', 'a "{" is never closed'],
+    ['docs/{a,b}/{c', 'a "{" is never closed'],
     ['src/[z-a]', 'the range "z-a" runs backwards'],
+    ['src/[\\', 'a "[" is never closed'],
+    ['src/[a-', 'a "[" is never closed'],
     ['docs/**.md', '"**" means any number of directories only as a whole segment: write "docs/**/*.md" for any depth, or "docs/*.md" for one level'],
     ['**.ts', '"**" means any number of directories only as a whole segment: write "**/*.ts" for any depth, or "*.ts" for one level'],
     ['a**b/c', '"**" means any number of directories only as a whole segment: write "a*/**/*b/c" for any depth, or "a*b/c" for one level'],
@@ -116,8 +153,15 @@ describe('the syntax every dialect shares', () => {
     ['src\\', '"\\" escapes glob syntax; separate directories with "/"'],
     ['.', 'the pattern names no path'],
     ['/', 'the pattern names the root itself, not a path under it'],
+    ['./', 'the pattern names the root itself, not a path under it'],
   ])('refuses %j: %s', (pattern, reason) => {
     expect(error(pattern)).toBe(reason);
+  });
+
+  it('names the bracket that is never closed, not a brace closed before the separator', () => {
+    // A class never reaches past a `/`, so the `}` before one closes the
+    // group, and what is left open is the `[`.
+    expect(error('src/{a,[b}/c]')).toBe('a "[" is never closed');
   });
 
   it('refuses ** inside a name with the two patterns the writer may have meant, built from theirs', () => {
@@ -168,9 +212,42 @@ describe('the syntax every dialect shares', () => {
     expect(parseGlob(Array.from({ length: 8 }, () => '{a,b}').join(''), PATH).ok).toBe(true);
   });
 
+  it('refuses a pattern that compiles to more states than the ceiling, and compiles one that fills it', () => {
+    // Alternatives are compiled side by side, so as many as the braces allow,
+    // each a long name, outgrow the ceiling.
+    expect(() => compileGlob(`${'{a,b}'.repeat(8)}/${'x'.repeat(300)}`, PATH)).toThrow(AutomatonTooLarge);
+    // A literal needs a state for each character and one to accept.
+    const file: GlobOptions = { ...PATH, literal: 'file' };
+    expect(() => compileGlob('a'.repeat(MAX_STATES), file)).toThrow(`the pattern compiles to more than ${MAX_STATES} states`);
+    // The longest literal that compiles fills the ceiling exactly, and matches.
+    const compiles = (length: number): boolean => {
+      try {
+        compileGlob('a'.repeat(length), file);
+        return true;
+      } catch (thrown) {
+        if (thrown instanceof AutomatonTooLarge) return false;
+        throw thrown;
+      }
+    };
+    let fits = 1;
+    let refused = MAX_STATES;
+    while (refused - fits > 1) {
+      const middle = (fits + refused) >> 1;
+      if (compiles(middle)) fits = middle;
+      else refused = middle;
+    }
+    const longest = compileGlob('a'.repeat(fits), file);
+    expect(longest.automaton.kinds.length).toBe(MAX_STATES);
+    expect(longest.match('a'.repeat(fits))).toBe(true);
+    expect(longest.match('a'.repeat(fits - 1))).toBe(false);
+  });
+
   it('throws a GlobError naming the pattern from compileGlob', () => {
     expect(() => compileGlob('src/[ab', PATH)).toThrow(GlobError);
     expect(() => compileGlob('src/[ab', PATH)).toThrow('invalid glob "src/[ab": a "[" is never closed');
+    // What a tool prints when it lets the error through names its kind.
+    expect(String(new GlobError('src/[ab', 'a "[" is never closed'))).toBe('GlobError: invalid glob "src/[ab": a "[" is never closed');
+    expect(String(new AutomatonTooLarge())).toBe(`AutomatonTooLarge: the pattern compiles to more than ${MAX_STATES} states`);
   });
 
   it('reads backslashes as separators when told to', () => {
@@ -285,12 +362,17 @@ describe('the gitignore dialect', () => {
   it('reads a trailing slash as nothing more than the name', () => {
     expect(matches('build/', 'build', GITIGNORE)).toBe(true);
     expect(matches('build/', 'x/build/y', GITIGNORE)).toBe(true);
+    // At the end of a brace alternative too, and a `.` segment names nothing:
+    // neither is a slash that anchors.
+    expect(matches('{build/,dist}', 'x/build/y', GITIGNORE)).toBe(true);
+    expect(matches('build/.', 'x/build/y', GITIGNORE)).toBe(true);
   });
 
   it('names no base for a floating pattern', () => {
     expect(compileGlob('tests', GITIGNORE).bases).toEqual(['']);
     expect(compileGlob('src/gen/*.ts', GITIGNORE).bases).toEqual(['src/gen']);
     expect(compileGlob('src/config', GITIGNORE).bases).toEqual(['src']);
+    expect(compileGlob('src/gen/config', GITIGNORE).bases).toEqual(['src/gen']);
   });
 });
 
@@ -313,11 +395,25 @@ describe('a witness', () => {
     const cyrillic = glob(`[${char(0x400)}-${char(0x4ff)}]`);
     const narrow = glob(`[${char(0x450)}-${char(0x460)}]`);
     expect(globWitness([cyrillic, narrow])).toEqual({ kind: 'found', path: char(0x450) });
+    expect(globWitness([glob('?'), glob(beyond)])).toEqual({ kind: 'found', path: char(0x100) });
+    // Avoiding every character `?` names leaves none, readable or not.
+    expect(globWitness([glob(beyond)], [glob('?')])).toEqual({ kind: 'none' });
+    // The character may be one only a pattern to avoid names, whatever else
+    // the patterns to avoid hold.
+    expect(globWitness([glob('?')], [glob(`[!${char(0x100)}]`)])).toEqual({ kind: 'found', path: char(0x100) });
+    expect(globWitness([glob('?')], [glob('*/x'), glob(`[${char(0x01)}-${char(0xff)}]`)])).toEqual({ kind: 'found', path: char(0x100) });
+    // And past the last code point there is none to try.
+    expect(globWitness([glob(`[!${char(0x01)}-${char(0x10ffff)}]`)])).toEqual({ kind: 'none' });
   });
 
   it('is a file, never a directory or an empty segment', () => {
     expect(globWitness([glob('a/*/b', PATH), glob('a/*/b', PATH)])).toEqual({ kind: 'found', path: 'a/x/b' });
     expect(globWitness([glob('*'), glob('.*')])).toEqual({ kind: 'found', path: '.x' });
+  });
+
+  it('is a valid path: no `..` segment and no NUL, even where only those would do', () => {
+    expect(globWitness([glob('.?'), glob('?.')])).toEqual({ kind: 'none' });
+    expect(globWitness([glob('a?'), glob(`?${String.fromCodePoint(0)}`)])).toEqual({ kind: 'none' });
   });
 
   it('proves there is none', () => {
@@ -345,12 +441,18 @@ describe('a witness', () => {
   it('says undecided when the budget runs out, never a guess', () => {
     expect(globWitness([glob('src/**'), glob('**/*.ts')], [], 1)).toEqual({ kind: 'undecided' });
     expect(globCovers([glob('src/*.ts')], glob('src/**'), 1)).toBe('undecided');
+    // The budget counts the search states visited: the start, then the one a
+    // one-character witness ends on.
+    const file = glob('a', { ...PATH, literal: 'file' });
+    expect(globWitness([file], [], 1)).toEqual({ kind: 'undecided' });
+    expect(globWitness([file], [], 2)).toEqual({ kind: 'found', path: 'a' });
   });
 
-  it('refuses to compare scopes that ignore case', () => {
+  it('refuses to compare scopes that ignore case, or to look for a path nothing asks for', () => {
     expect(() => globWitness([compileGlob('a', { dialect: 'path', caseSensitive: false })])).toThrow(
       '"a" ignores case; scopes are compared case-sensitively',
     );
+    expect(() => globWitness([], [glob('a')])).toThrow('a witness search needs at least one automaton to satisfy');
   });
 });
 

@@ -134,6 +134,10 @@ describe('matching', () => {
     expect(test('^a.b$', 'a\nb')).toBe(false);
     expect(test('^a.b$', 'a\rb')).toBe(false);
     expect(test('^a[\\s\\S]b$', 'a\nb')).toBe(true);
+    // Nor the two separators RegExp also ends a line at.
+    expect(test('^a.b$', 'a\u{2028}b')).toBe(false);
+    expect(test('^a.b$', 'a\u{2029}b')).toBe(false);
+    expect(new RegExp('^a.b$').test('a\u{2028}b')).toBe(false);
   });
 
   it('anchors to the whole subject, not to a line', () => {
@@ -191,9 +195,15 @@ describe('termination', () => {
 
   it('rejects a pattern too large to compile by copying', () => {
     expect(() => compilePattern('(a{99}){99}')).toThrow(PatternError);
+    expect(() => compilePattern('(a{99}){99}')).toThrow(
+      'pattern is too large: counted repetition is compiled by copying, and this needs more than 4096 states',
+    );
     // The bound is on the compiled automaton, so a long pattern that compiles
     // small is fine.
     expect(compilePattern('a'.repeat(2000)).size).toBe(2001);
+    // And it holds 4096 states, not one more.
+    expect(compilePattern('a'.repeat(4095)).size).toBe(4096);
+    expect(() => compilePattern('a'.repeat(4096))).toThrow(PatternError);
   });
 
   it('stays small for the patterns this repository actually writes', () => {
@@ -327,6 +337,12 @@ const SUBJECTS: readonly string[] = [
   'a\nb',
   'a\rb',
   'a\tb',
+  // A form feed and a vertical tab, each of which has an escape of its own,
+  // and the two separators a dot does not match.
+  'a\u{c}b',
+  'a\u{b}b',
+  'a\u{2028}b',
+  'a\u{2029}b',
   '\u00e9\u00c9',
   '\u4e2d\u6587',
   'stra\u00dfe',
@@ -426,6 +442,10 @@ const PATTERNS: readonly string[] = [
   '^\\d+$',
   '^\\w+$',
   '^\\s*$',
+  'a\\fb',
+  'a\\vb',
+  '[\\f\\v]',
+  '^a.b$',
   '[\\d]',
   '[\\D]',
   '[\\w\\s]',
