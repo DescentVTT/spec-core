@@ -94,7 +94,17 @@ Also shared, found when the three engines were run beside this one
   itself. A trailing slash always means contents, glob syntax or not.
 - Braces expand before anything else is decided, so `src/{a.ts,lib}` is two
   literals, each read as a file, a directory or either, as a literal without
-  braces would be.
+  braces would be. *Amended 2026-09-28*: that includes the trailing slash.
+  An alternative ending in `/` is read as that alternative written alone,
+  so `{src/,lib}` is `src/**` or `lib` in the `path` and `ripgrep`
+  dialects, the contents of `src` matched against the whole path, as `src/`
+  and `{src,lib}/` already were. The slash was read before the braces were
+  expanded, and only at the end of the whole pattern, so inside braces it
+  was dropped: `{src/,lib}` named `src` itself, as a literal in `path` and
+  as a name at any depth in `ripgrep`. In `gitignore` a trailing slash is
+  dropped wherever it stands and the directory is excluded with everything
+  in it, as git excludes a directory a slash names; `{build/,dist}` reads
+  as it did.
 
 ## How the differences were found
 

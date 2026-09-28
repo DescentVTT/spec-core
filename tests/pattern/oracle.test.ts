@@ -18,7 +18,9 @@ type Tok =
   | { readonly k: 'any' }
   | { readonly k: 'star' }
   | { readonly k: 'class'; readonly negated: boolean; readonly chars: string };
-type Seg = { readonly k: 'gs' } | { readonly k: 'name'; readonly toks: readonly Tok[] };
+type Step = { readonly k: 'gs' } | { readonly k: 'name'; readonly toks: readonly Tok[] };
+/** As written: `dir` is a trailing slash, and only ever last. */
+type Seg = Step | { readonly k: 'dir' };
 type Alt = readonly Seg[];
 
 interface Pattern {
@@ -68,6 +70,7 @@ function genAlt(rand: () => number): Seg[] {
   const count = 1 + Math.floor(rand() * 3);
   const segs: Seg[] = [];
   for (let i = 0; i < count; i += 1) segs.push(rand() < 0.22 ? { k: 'gs' } : { k: 'name', toks: genName(rand) });
+  if (rand() < 0.15) segs.push({ k: 'dir' });
   return segs;
 }
 
@@ -85,7 +88,7 @@ function renderTok(tok: Tok): string {
 }
 
 function renderAlt(alt: Alt): string {
-  return alt.map((seg) => (seg.k === 'gs' ? '**' : seg.toks.map(renderTok).join(''))).join('/');
+  return alt.map((seg) => (seg.k === 'gs' ? '**' : seg.k === 'dir' ? '' : seg.toks.map(renderTok).join(''))).join('/');
 }
 
 function genPattern(rand: () => number): Pattern {
@@ -119,9 +122,9 @@ function nameMatches(toks: readonly Tok[], s: string, i = 0, j = 0): boolean {
   return j < s.length && tokMatches(tok, s.charAt(j)) && nameMatches(toks, s, i + 1, j + 1);
 }
 
-function segsMatch(segs: Alt, parts: readonly string[], i = 0, j = 0): boolean {
+function segsMatch(segs: readonly Step[], parts: readonly string[], i = 0, j = 0): boolean {
   if (i === segs.length) return j === parts.length;
-  const seg = segs[i] as Seg;
+  const seg = segs[i] as Step;
   if (seg.k === 'gs') {
     if (i === segs.length - 1) return parts.length - j >= 1;
     for (let k = j; k <= parts.length; k += 1) if (segsMatch(segs, parts, i + 1, k)) return true;
@@ -130,7 +133,7 @@ function segsMatch(segs: Alt, parts: readonly string[], i = 0, j = 0): boolean {
   return j < parts.length && nameMatches(seg.toks, parts[j] as string) && segsMatch(segs, parts, i + 1, j + 1);
 }
 
-function literalOf(alt: Alt): string[] | null {
+function literalOf(alt: readonly Step[]): string[] | null {
   const out: string[] = [];
   for (const seg of alt) {
     if (seg.k !== 'name' || !seg.toks.every((t) => t.k === 'lit')) return null;
@@ -139,9 +142,20 @@ function literalOf(alt: Alt): string[] | null {
   return out;
 }
 
+/**
+ * An alternative with its trailing slash read by the definition: a
+ * directory's contents, `dir/**`, except in an exclusion, where it is the name
+ * alone and anchors nothing.
+ */
+function withoutSlash(written: Alt, dialect: GlobDialect): readonly Step[] {
+  const steps = written.filter((seg): seg is Step => seg.k !== 'dir');
+  return steps.length === written.length || dialect === 'gitignore' ? steps : [...steps, { k: 'gs' }];
+}
+
 function oracle(pattern: Pattern, dialect: GlobDialect, reading: LiteralReading, path: string): boolean {
   const parts = path.split('/');
-  return pattern.alts.some((alt) => {
+  return pattern.alts.some((written) => {
+    const alt = withoutSlash(written, dialect);
     const slashed = alt.length > 1;
     if (dialect === 'path') {
       const literal = literalOf(alt);
