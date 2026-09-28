@@ -19,11 +19,22 @@ export function instrumented(): boolean {
  * instrumented, one run is all the time there is.
  */
 export function fastest(runs: number, run: () => unknown): number {
-  let best = Number.POSITIVE_INFINITY;
+  return fastestInTurn(runs, run)[0] as number;
+}
+
+/**
+ * The fastest of a few runs of each piece of work, the pieces taken in turn,
+ * so that a stretch when the machine is busy slows every one of them and not
+ * only whichever was running.
+ */
+export function fastestInTurn(runs: number, ...work: (() => unknown)[]): number[] {
+  const best = work.map(() => Number.POSITIVE_INFINITY);
   for (let i = 0; i < (instrumented() ? 1 : runs); i += 1) {
-    const started = performance.now();
-    run();
-    best = Math.min(best, performance.now() - started);
+    work.forEach((run, k) => {
+      const started = performance.now();
+      run();
+      best[k] = Math.min(best[k] as number, performance.now() - started);
+    });
   }
   return best;
 }
