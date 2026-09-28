@@ -213,22 +213,20 @@ describe('the syntax every dialect shares', () => {
   });
 
   it('refuses a pattern that compiles to more states than the ceiling, and compiles one that fills it', () => {
+    const tooLarge = `the pattern compiles to more than ${MAX_STATES} states`;
     // Alternatives are compiled side by side, so as many as the braces allow,
-    // each a long name, outgrow the ceiling.
-    expect(() => compileGlob(`${'{a,b}'.repeat(8)}/${'x'.repeat(300)}`, PATH)).toThrow(AutomatonTooLarge);
+    // each a long name, outgrow the ceiling. The refusal is an answer, as a
+    // malformed pattern's is, and not an exception.
+    const wide = `${'{a,b}'.repeat(8)}/${'x'.repeat(300)}`;
+    expect(parseGlob(wide, PATH)).toEqual({ ok: false, error: tooLarge });
+    expect(parseGlobList(['docs/*.md', wide], PATH)).toEqual({ ok: false, error: `"${wide}": ${tooLarge}` });
+    expect(() => compileGlob(wide, PATH)).toThrow(GlobError);
     // A literal needs a state for each character and one to accept.
     const file: GlobOptions = { ...PATH, literal: 'file' };
-    expect(() => compileGlob('a'.repeat(MAX_STATES), file)).toThrow(`the pattern compiles to more than ${MAX_STATES} states`);
+    expect(error('a'.repeat(MAX_STATES), file)).toBe(tooLarge);
+    expect(() => compileGlob('a'.repeat(MAX_STATES), file)).toThrow(`invalid glob "${'a'.repeat(MAX_STATES)}": ${tooLarge}`);
     // The longest literal that compiles fills the ceiling exactly, and matches.
-    const compiles = (length: number): boolean => {
-      try {
-        compileGlob('a'.repeat(length), file);
-        return true;
-      } catch (thrown) {
-        if (thrown instanceof AutomatonTooLarge) return false;
-        throw thrown;
-      }
-    };
+    const compiles = (length: number): boolean => parseGlob('a'.repeat(length), file).ok;
     let fits = 1;
     let refused = MAX_STATES;
     while (refused - fits > 1) {
@@ -240,6 +238,14 @@ describe('the syntax every dialect shares', () => {
     expect(longest.automaton.kinds.length).toBe(MAX_STATES);
     expect(longest.match('a'.repeat(fits))).toBe(true);
     expect(longest.match('a'.repeat(fits - 1))).toBe(false);
+  });
+
+  it("passes on what a literal reading throws, as the caller's failure and not a malformed pattern", () => {
+    const reading = (): 'file' => {
+      throw new Error('the tree could not be read');
+    };
+    expect(() => parseGlob('src/a', { ...PATH, literal: reading })).toThrow('the tree could not be read');
+    expect(() => compileGlob('src/a', { ...PATH, literal: reading })).toThrow('the tree could not be read');
   });
 
   it('throws a GlobError naming the pattern from compileGlob', () => {

@@ -65,6 +65,13 @@ Shared by all three:
   as ripgrep and `.gitignore` read them, and as the tools did before.
 - The empty pattern is an error: it names nothing, and a list holding one is
   more likely a mistake in a configuration file than a wish to match nothing.
+- A pattern too large to compile is refused as a malformed one is: braces
+  that expand to more than 256 patterns, or an automaton past 65,536 states.
+  *Amended 2026-09-28*: `parseGlob`, which says why it cannot compile a
+  pattern, threw the second as `AutomatonTooLarge`, and `compileGlob`, which
+  throws a `GlobError` naming the pattern, threw it too; both now give it as
+  they give every other reason. What a caller's `literal` function throws
+  still goes on up: it is the caller's failure, not the pattern's.
 - `!` is a list concern, not a pattern's: `parseGlobList` reads entries in
   order, last match wins, as `.gitignore` does.
 

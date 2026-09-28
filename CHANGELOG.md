@@ -18,6 +18,18 @@ What the tools that copied 65ef842 - all four - see when they copy again.
   is matched against the whole path, as `src/` is: `{src/,*.md}` matches
   `src/deep/a.ts` and no longer `lib/src`. The `gitignore` dialect reads it
   as before, the directory and everything in it (ADR-0003).
+- `pattern`: a pattern that compiles to more than `MAX_STATES` states is a
+  refusal, as its documentation always said. `parseGlob` returns
+  `{ ok: false, error: 'the pattern compiles to more than 65536 states' }`
+  and `parseGlobList` names the entry, `"<pattern>": the pattern compiles
+  to more than 65536 states`, where both threw `AutomatonTooLarge`;
+  `compileGlob` throws a `GlobError`, `invalid glob "<pattern>": the
+  pattern compiles to more than 65536 states`, where it threw
+  `AutomatonTooLarge`. The message is the one `AutomatonTooLarge` carried.
+  No function the module exports throws `AutomatonTooLarge` any more, and
+  a caller that caught it - spec-brief's `parseGlob` does - catches nothing;
+  the class stays exported, so that catch still compiles. What a `literal`
+  function throws still passes through both (ADR-0003).
 
 ### Changed since 119345e
 
