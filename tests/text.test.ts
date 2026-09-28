@@ -81,6 +81,12 @@ describe('ranges and masks', () => {
     ]);
   });
 
+  it('merges a range into one that starts before it and ends after it, in either order', () => {
+    const merged = [{ start: 0, end: 10 }];
+    expect(mergeRanges([{ start: 0, end: 10 }, { start: 5, end: 6 }])).toEqual(merged);
+    expect(mergeRanges([{ start: 5, end: 6 }, { start: 0, end: 10 }])).toEqual(merged);
+  });
+
   it('answers membership at both ends of every range', () => {
     const merged = mergeRanges([
       { start: 2, end: 4 },
@@ -129,6 +135,8 @@ describe('terminators and marks', () => {
     expect(lineEnding('a\nb\r\n')).toBe('\n');
     expect(lineEnding('abc')).toBe('\n');
     expect(lineEnding('\nx')).toBe('\n');
+    // A terminator at the very start is counted with the rest.
+    expect(lineEnding('\na\r\nb\r\n')).toBe('\r\n');
   });
 
   it('splits lines so that joining them gives the text back', () => {

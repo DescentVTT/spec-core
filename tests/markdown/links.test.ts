@@ -123,6 +123,12 @@ describe('a link inside a link', () => {
     expect(brief('[a [b [c](c.md) d] e](f.md)')).toEqual([['inline', false, 'c', 'c.md', 'c.md']]);
   });
 
+  it('is the link after a `]` that closes nothing, whatever follows that `]`', () => {
+    // The stray `]` pairs with no `[`, so the destination written after it,
+    // which spans both pairs of brackets, is read by no link.
+    expect(brief('x](<[o [i](y)](z)>)')).toEqual([['inline', false, 'i', 'y', 'y']]);
+  });
+
   it('is a link in any of the bracket forms, and so is the text around it', () => {
     // A reference or a shortcut inside makes text of an inline link around it.
     expect(brief(doc('[a [b][] c](d.md)', '', '[b]: /b')).map((l) => l.slice(0, 3))).toEqual([
@@ -298,6 +304,9 @@ describe('reference links and definitions', () => {
   it('does not read a definition as a shortcut to itself, or one after a comment', () => {
     expect(brief('[a]: b').map((l) => l[0])).toEqual(['definition']);
     expect(brief(doc('<!-- x', '-->[a]: b')).map((l) => l[0])).toEqual([]);
+    // The line a comment closes on is the comment's, whatever follows its
+    // `-->`, though a blank line inside the comment left no paragraph open.
+    expect(brief(doc('<!--', '', '-->[a]: b', '', '[a]')).map((l) => l[0])).toEqual([]);
     expect(brief('> [a]: b')[0]?.[0]).toBe('definition');
   });
 });
@@ -322,6 +331,11 @@ describe('a definition and the paragraph above it', () => {
     expect(targets('[r]: r.md', '[s]: s.md', 'text')).toEqual(['definition r.md', 'definition s.md', 'shortcut r.md', 'shortcut s.md']);
     expect(targets('[r]: r.md', 'text', '[s]: s.md')).toEqual(['definition r.md', 'shortcut r.md']);
     expect(targets('> [r]: r.md', '[s]: s.md')).toEqual(['definition r.md', 'definition s.md', 'shortcut r.md', 'shortcut s.md']);
+    // Indented four columns or more under one, it is that paragraph's text:
+    // a definition is read at most three columns in, however far past that.
+    for (let columns = 4; columns <= 12; columns += 1) {
+      expect(targets('[r]: r.md', `${' '.repeat(columns)}[notebook]: "n.md"`), `${columns} columns`).toEqual(['definition r.md', 'shortcut r.md']);
+    }
   });
 
   it('opens a paragraph after a blank line, or where a line opens a block quote', () => {
@@ -397,6 +411,9 @@ describe('where links are read', () => {
     expect(links('[a\n\nb](c)')).toEqual([]);
     expect(links('# [a\nb](c)')).toEqual([]);
     expect(links('- [a\n- b](c)')).toEqual([]);
+    // A line a comment opens is a block of its own: a destination does not
+    // run onto it, though the comment is blank to a reader of links.
+    expect(links('[a](b\n<!-- x -->)')).toEqual([]);
   });
 
   it('gives each link its line and returns them in order', () => {
@@ -408,6 +425,8 @@ describe('where links are read', () => {
       ['wiki', 4, 35],
       ['shortcut', 4, 41],
     ]);
+    // Each once: a paragraph after a link reads nothing before it again.
+    expect(links(doc('[[a]]', '', 'x')).map((l) => [l.form, l.target])).toEqual([['wiki', 'a']]);
   });
 });
 
@@ -436,6 +455,9 @@ describe('edges of the link reader', () => {
   it('reads a title in a later paragraph from that paragraph', () => {
     const text = doc('x', '', 'see [a](b "t (x)") and [c](d (t))');
     expect(brief(text).map((l) => l[3])).toEqual(['b', 'd']);
+    // And one its paragraph never closes is no title: the quote that would
+    // close it is in the paragraph after.
+    expect(links(doc('x', '', '[a](b "t', '', 'u")'))).toEqual([]);
   });
 
   it('reads no wiki link that names nothing, and no link through a bracket never closed', () => {
