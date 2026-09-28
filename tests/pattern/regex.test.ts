@@ -159,7 +159,10 @@ describe('termination', () => {
    * The pattern below takes V8 0.9 seconds on the first subject and 103 on the
    * third; this matcher takes 11 and 13 microseconds. The bound is generous on
    * purpose - eight Stryker workers share this machine - and the failure being
-   * guarded against is seven orders of magnitude away from it.
+   * guarded against is seven orders of magnitude away from it. It is a number
+   * of milliseconds, where other tests of cost are ratios, because nothing
+   * rests on it: every mutant these tests fail changes an answer they assert
+   * first (ADR-0007).
    */
   const BLOW_UP = 2000;
 

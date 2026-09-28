@@ -13,6 +13,7 @@ import {
   MAX_STATES,
   type GlobOptions,
 } from '../../src/pattern/index.js';
+import { perRunInTurn } from '../timing.js';
 
 const PATH: GlobOptions = { dialect: 'path', caseSensitive: true };
 const RIPGREP: GlobOptions = { dialect: 'ripgrep', caseSensitive: true };
@@ -545,11 +546,22 @@ describe('a list', () => {
 
 describe('cost', () => {
   it('matches in time linear in the path, whatever the pattern', () => {
-    // A backtracking engine takes about 28 seconds on this; see the ADR.
     const glob = compileGlob('*-*-*-*-*-*x', RIPGREP);
-    const name = `${'a-'.repeat(60)}y`;
-    const started = performance.now();
-    expect(glob.match(name)).toBe(false);
-    expect(performance.now() - started).toBeLessThan(250);
+    // A name four times as long takes about four times as long to match, and
+    // the check allows twice that, with a tenth of a millisecond for noise: a
+    // ratio, which a slow or busy machine keeps, where a number of
+    // milliseconds is one it can break. A matcher that lets a state it has
+    // taken be taken again, as many times as there are ways to reach it,
+    // took 27 microseconds on the shorter name and 12 milliseconds on the
+    // longer, and 11 seconds on the one below.
+    const [shorter, longer] = perRunInTurn(
+      3,
+      5,
+      () => glob.match(`${'a-'.repeat(5)}y`),
+      () => glob.match(`${'a-'.repeat(20)}y`),
+    ) as [number, number];
+    expect(longer).toBeLessThan(8 * shorter + 0.1);
+    // A backtracking engine takes about 28 seconds on this; see the ADR.
+    expect(glob.match(`${'a-'.repeat(60)}y`)).toBe(false);
   });
 });

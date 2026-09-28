@@ -42,6 +42,22 @@ done with the survivors the second one found.
 **A test for every heuristic's negative case.** A rule that fires has a test
 for the input where it must not.
 
+**A test of cost states a ratio, not a number of milliseconds.** *Amended
+2026-09-28.* A slow or busy machine slows every run, and can push one past
+any fixed bound: the scan of a generated megabyte, held to a second, took
+915 ms on a machine running other suites. So a test of cost times the same
+work at two sizes - a document scanned once at sixteen times its size and
+sixteen times over at its size, a name matched and one four times as long -
+over runs of about the same length, taken in turn, and allows twice what
+linear work takes and a fixed allowance for noise; four times for ordinary
+documents, which hold none of the shapes the hostile ones are built from.
+Such a test holds only
+what changes cost alone, a memo or a mark that a state was visited; a mutant
+that changes an answer is held by a test of the answer. The two bounds of
+two seconds on the regular-expression matcher stay: every mutant that fails
+them changes an answer those tests assert first, and the work they bound
+takes microseconds.
+
 ## Consequences
 
 The suite is larger than the code, and slower than a unit suite usually is,
@@ -235,5 +251,49 @@ to finish them could do, it reads 92.66%, which does not clear 94.5: it
 would take 98 more of them held by an assertion. But no runner finishes a
 loop that does not end, so none of the 179 can survive, and counted as
 Stryker counts them, these mutants give the projection on any runner.
+
+**The `break` stays 94.5.**
+
+### 2026-09-28: what only a clock held
+
+The sweep of pull request 4, run 36392120706, read 96.33% over 5,287
+mutants. Stryker names the first test that fails a mutant, so a mutant a
+test of an answer failed first is held by that answer. 214 were not: 136
+that timed out, and 78 that a test of time failed first - the scan of a
+generated megabyte, the glob check held to 250 ms, the regular-expression
+checks held to two seconds, or a check of linear time. Each was replayed by
+hand against the whole suite with the clock the tests read held at 0.
+
+- **91 are killed by an answer**: all 78 a test of time failed first, among
+  them the six the regular-expression checks did - a class that matches
+  every character, a case twin taken for any letter, the mark that a state
+  was visited - and 13 of those that timed out. So no mutant depends on the
+  two seconds those checks allow.
+- **106 never end**: 93 were still running after 75 seconds and 13 filled
+  the heap.
+- **17 survive**, and were run again on the real clock. Three change cost
+  alone and are held by checks of cost as they now are: the mark that a
+  state was visited in the glob matcher, whose live states otherwise repeat
+  as many times as there are ways to reach them - 12 ms for a name the
+  engine matches in 20 microseconds, 11 seconds for the 121-character one -
+  and, twice, the memory of a failed search for a closing backtick run. 14
+  are equivalent, each commented at the code; the two in `findTables` were
+  not, and now are.
+
+The glob check and the megabyte check were bounds in milliseconds, and now
+compare two sizes, as the amendment above has it. The megabyte check never
+ran instrumented, so it held no mutant; one loaded run took 915 of its 1,000
+ms. The checks of linear time compared one small scan with one large one:
+documents of 80,000 lines read linear work as 16 to 25 times on an idle
+machine, from collecting a heap sixteen times as full, and a machine running
+six other suites took their margin to 1.68 - one failed with nothing wrong.
+They now time sixteen small scans against one large one, taken in turn, on
+documents a third to a tenth the size, and the least margin under the
+same load is 2.33. They time the links, list items and directives mask too,
+which the scan makes when first read and which no check had timed. Of the
+mutants written by hand to change cost alone, eight are caught on the real
+clock; the ninth, a search of every definition for the one on the line
+above, costs a third of a nanosecond a step and hides under the allowance
+at these sizes, as it did before, when no check timed links at all.
 
 **The `break` stays 94.5.**
