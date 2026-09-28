@@ -146,3 +146,94 @@ and 95.56%, over the 94.89% the `break` of 94 was set against. 95 would sit
 0.42 points under the lower of them, inside the 0.48 that two sweeps of
 nearly the same code have swung; 94.5 sits 0.92 and 1.06 points under, as
 far as 94 sat under 94.89.
+
+### 2026-09-28: the sweeps of d5fab98 and 65ef842, and what timing out hid
+
+| Commit | Run | Score | Mutants | Killed | Timed out | Survived | No coverage |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| d5fab98 | 36337062683 | 95.54% | 5,227 | 4,493 | 501 | 213 | 20 |
+| 65ef842, its pull request | 36343489435 | 95.48% | 5,287 | 4,537 | 511 | 219 | 20 |
+| 65ef842, main | 36354143778 | 94.21% | 5,287 | 4,614 | 367 | 286 | 20 |
+
+d5fab98 changed tests and the gate and nothing else, and its sweep cleared
+94.5 by 1.04 points. 65ef842, with ca0ec02 under it, changed where a
+definition is read, and was swept twice, by its pull request and by main.
+The code was the same and the runner was not: main's was faster, and 168
+mutants that had timed out on the pull request's finished there - 101 were
+killed and 67 survived - while 24 went the other way. Main's sweep read
+94.21% and failed the gate. Against the sweep of d5fab98, 73 survivors were
+new. Three were in the reader 65ef842 changed: the test that a definition's
+line is Markdown and opens with structure, twice, which the new test of the
+paragraph above now answered first wherever the suite looked, and the
+second bracket's `undefined` test, which only narrows a type. The other 70
+had timed out there, in code 65ef842 did not touch: 44 in `glob.ts`, 14 in
+`automaton.ts`, 8 in `links.ts`, and one each in `regex.ts`, `lines.ts`,
+`scan.ts` and `charset.ts`. A mutant that times out counts as detected, so
+these had only ever been detected by being slow, and no assertion held what
+they change.
+
+Every mutant main's sweep reported undetected, and every one that timed out
+in either sweep - 774 - was replayed by hand against the whole suite, one
+run each, with the clock the timing tests read held at 0 so that only an
+assertion about an answer could kill; the survivors were run again on the
+real clock.
+
+- **Of the 73, killed 44**, each by a test of the decision it broke: an
+  escaped brace or comma inside braces; a group closing inside a group; a
+  class hiding its commas from the braces when negated or opened with `]`,
+  and never reaching past a `/`; a refusal from a later group; `./` as the
+  root; an extended glob at the start of a pattern, or with more than one
+  character before its `|`; a trailing `/` or a `.` segment inside braces,
+  which anchors no gitignore pattern; `[!]]`; two globstars in a row
+  compiling to the automaton one does; the last code point one UTF-16 unit
+  holds; the automaton's ceiling, as a refusal with its message and as the
+  longest literal that fits filling it exactly; a range inside an earlier
+  one merging into it; the line a comment closes on holding no definition;
+  and a `]` that closes nothing opening no link.
+- **Of the 73, equivalent 28**, each commented at the code: arrows and
+  buffers whose first value is never read; the builder's guards against an
+  empty sequence or alternation, which no glob asks for; bounds one step
+  past an end, where `''` or NaN is read; `close >= 0` where `close` is -1
+  or past the `[`; `refClose !== undefined`, which only narrows a type; a
+  step back into a link's text that comes back where it was; `resume`'s
+  first value; and `/` as a literal, which no segment holds.
+- **Of the 73, one now loops without end**: `close > 0` made `true` in
+  `splitOptions`, which no test reached until the refusal of a class that
+  reaches past a `/` did.
+- **Of the 468 that timed out in either sweep, 268 are killed** by an
+  assertion. 19 of them by tests added here: a dot and U+2028 and U+2029;
+  a definition indented past three columns under one, at every width from
+  four to twelve; a title its paragraph never closes; a destination
+  running onto a line a comment opens; a wiki link read once with a
+  paragraph after it; a colon past a scheme's place; a witness only an
+  unreadable character makes, and none when every character is avoided;
+  and ten mutants of `serveLines` that left its promise unsettled, which
+  the tests waited on until vitest gave up and now fail at once, by asking
+  whether it settled by the next turn of the event loop. Four more are
+  killed on the real clock by the checks of linear time already there: the
+  stamp that marks a state visited, the memory of a failed search for a
+  closing backtick run (twice), and the memory of a comment that never
+  closes, whose answers do not change without them; the last took two
+  minutes with the clock held. **23 are equivalent**, each commented: an
+  early return, a clamp or a loop bound at a value that answers the same, a
+  guard that only narrows a type. **177 still time out or run out of
+  memory**, and every one is a loop that no longer ends: 127 were still
+  running after 150 seconds on their own, where the whole suite takes about
+  ten, and 50 filled the heap.
+- **Of the 233 survivors the sweep of d5fab98 reported too, 74 are now
+  killed**, by the tests above and by tests of the decisions beside them:
+  the MCP revisions negotiated, written out; a cancellation for a request
+  that finished or never began, and for `"1"` beside `1`; several messages
+  in one chunk; a witness's budget, its refusal of `..` and NUL, and of an
+  empty search; a title-case letter and `ß` ignoring case; the names of
+  `GlobError`, `AutomatonTooLarge` and `ProtocolError`; and others. One
+  more now loops without end.
+
+On main's report with these verdicts, the next sweep reads 96.05%. Counting
+every mutant still timing out as a survivor, the worst a runner fast enough
+to finish them could do, it reads 92.66%, which does not clear 94.5: it
+would take 98 more of them held by an assertion. But no runner finishes a
+loop that does not end, so none of the 179 can survive, and counted as
+Stryker counts them, these mutants give the projection on any runner.
+
+**The `break` stays 94.5.**
