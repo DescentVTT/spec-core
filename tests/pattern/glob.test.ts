@@ -159,6 +159,68 @@ describe('the syntax every dialect shares', () => {
     expect(error(pattern)).toBe(reason);
   });
 
+  it('refuses a brace alternative that names no path, as that text alone is, and names it', () => {
+    for (const options of [PATH, RIPGREP, GITIGNORE]) {
+      const refused = (pattern: string): string => error(pattern, options);
+      // Its slash read, `./` would be the contents of `.`: every path.
+      for (const pattern of ['{./,a}', '{a,./}', '{./}', '{x,{./,a}}', './{./,a}', '/{./,a}']) {
+        expect(refused(pattern), `${options.dialect}: ${pattern}`).toBe('the braces expand to "./", which names no path');
+      }
+      expect(refused('{.//,a}')).toBe('the braces expand to ".//", which names no path');
+      expect(refused('{././,a}')).toBe('the braces expand to "././", which names no path');
+      expect(refused('{/./,a}')).toBe('the braces expand to "/./", which names no path');
+      // The text refused is the one the braces give, which what stands
+      // around them is part of.
+      expect(refused('{.,a}/')).toBe('the braces expand to "./", which names no path');
+      expect(refused('.{/,a}')).toBe('the braces expand to "./", which names no path');
+      // A `.` alone, slashes alone - the root, not everything under it - and
+      // nothing at all, which the empty pattern is refused for.
+      expect(refused('{.,a}')).toBe('the braces expand to ".", which names no path');
+      expect(refused('{/,a}')).toBe('the braces expand to "/", which names no path');
+      expect(refused('{//,a}')).toBe('the braces expand to "//", which names no path');
+      expect(refused('{,a}')).toBe('the braces expand to an empty pattern');
+      expect(refused('{a,}')).toBe('the braces expand to an empty pattern');
+      expect(refused('{}')).toBe('the braces expand to an empty pattern');
+      // Without braces a pattern is refused in its own words.
+      expect(refused('.')).toBe('the pattern names no path');
+      expect(refused('./')).toBe('the pattern names the root itself, not a path under it');
+    }
+  });
+
+  it('refuses a rooted `./` as it refuses a rooted `.`: the root, not everything under it', () => {
+    for (const options of [PATH, RIPGREP, GITIGNORE]) {
+      for (const pattern of ['/.', '/./', '/.//', '/././']) {
+        expect(error(pattern, options), `${options.dialect}: ${pattern}`).toBe('the pattern names no path');
+      }
+    }
+  });
+
+  it('keeps an alternative that names a path, whatever dots and slashes it holds', () => {
+    // A leading `./` on a longer alternative is the current directory, and
+    // dropped, as on a whole pattern: `{./a,b}` reads as `{a,b}`, which is
+    // `./a` or `b`, in each dialect. In ripgrep that is `a` at any depth.
+    const everywhere = ['a', 'a/x', 'x/a', 'x/a/y', 'b', 'x/b', 'c'];
+    for (const options of [PATH, RIPGREP, GITIGNORE]) {
+      const answers = (pattern: string): boolean[] => everywhere.map((path) => matches(pattern, path, options));
+      expect(answers('{./a,b}'), options.dialect).toEqual(answers('{a,b}'));
+      expect(answers('{./a,b}'), options.dialect).toEqual(everywhere.map((path) => matches('./a', path, options) || matches('b', path, options)));
+    }
+    expect(matches('{./a,b}', 'x/a', RIPGREP)).toBe(true);
+    expect(matches('{./a,b}', 'x/a')).toBe(false);
+    // A `.` or a slash with a name beside it names a path: the contents of
+    // `src`, of `.github`, of `a`, and `a` itself.
+    expect(matches('src/{./,a}', 'src/x/y')).toBe(true);
+    expect(matches('src/{./,a}', 'src')).toBe(false);
+    expect(matches('{.github/,a}', '.github/ci.yml')).toBe(true);
+    expect(matches('{.github/,a}', '.github')).toBe(false);
+    expect(matches('a{/,b}', 'a/x')).toBe(true);
+    expect(matches('a{/,b}', 'a')).toBe(false);
+    expect(matches('a{,.ts}', 'a')).toBe(true);
+    expect(matches('a{,.ts}', 'a.ts')).toBe(true);
+    expect(matches('{a/,b}', 'a/x')).toBe(true);
+    expect(matches('{a/,b}', 'a')).toBe(false);
+  });
+
   it('names the bracket that is never closed, not a brace closed before the separator', () => {
     // A class never reaches past a `/`, so the `}` before one closes the
     // group, and what is left open is the `[`.
@@ -342,12 +404,6 @@ describe('the path dialect', () => {
     expect(glob.match('lib')).toBe(true);
     expect(glob.match('lib/a.ts')).toBe(false);
     expect(glob.bases).toEqual(['src', '']);
-  });
-
-  it('refuses an alternative that is only a slash: it names the root, not everything under it', () => {
-    expect(error('{/,a}')).toBe('the pattern names no path');
-    expect(error('{//,a}')).toBe('the pattern names no path');
-    expect(error('{/,a}', RIPGREP)).toBe('the pattern names no path');
   });
 
   it('roots a pattern with a leading slash at the root of the filesystem', () => {

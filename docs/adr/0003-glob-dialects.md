@@ -95,7 +95,12 @@ Also shared, found when the three engines were run beside this one
 (`tests/pattern/differential.test.ts`, below):
 
 - A `.` segment names nothing and is dropped; a pattern left naming no path,
-  or climbing out of its root with `..`, is an error.
+  or climbing out of its root with `..`, is an error. *Amended 2026-09-29*:
+  a trailing slash is read after that, so it cannot make a pattern that
+  names no path name the contents of `.`. `/./` and `/.//` were the root's
+  contents in the `path` and `ripgrep` dialects, every rooted path, where
+  `/` and `/.` are refused; they are refused as `/.` is. `gitignore`, which
+  drops the slash, refused them already.
 - A directory's contents do not include the directory: `dir/`, `dir/**`, and
   a literal read as a directory all match what is beneath it, never `dir`
   itself. A trailing slash always means contents, glob syntax or not.
@@ -111,7 +116,22 @@ Also shared, found when the three engines were run beside this one
   as a name at any depth in `ripgrep`. In `gitignore` a trailing slash is
   dropped wherever it stands and the directory is excluded with everything
   in it, as git excludes a directory a slash names; `{build/,dist}` reads
-  as it did.
+  as it did. *Amended 2026-09-29*: an alternative that names no path -
+  only `.` and empty segments, or nothing - is refused in every dialect, as
+  that text written alone is, before its slash is read, and the refusal
+  names it as the braces gave it:
+  `the braces expand to "./", which names no path`, and for `{,a}`, as the
+  empty pattern is refused, `the braces expand to an empty pattern`. Read
+  after its slash, the `./` in `{./,a}` was the contents of `.`, so the
+  `path` and `ripgrep` dialects matched every path, and `{./}`, `{.,a}/`
+  and `.{/,a}` the same, where `./` alone is refused. `gitignore` refused
+  them already, and every dialect `{.,a}`, `{/,a}` and `{,a}`, in the words
+  a whole pattern is refused in, which did not say which alternative was
+  meant. What stands beside the dots and slashes still counts:
+  `src/{./,a}` is the contents of `src` or `src/a`, `a{,.ts}` is `a` or
+  `a.ts`, and a leading `./` on a longer alternative is dropped, as on a
+  whole pattern, so `{./a,b}` reads as `{a,b}` - in `ripgrep`, `a` at any
+  depth, as `./a` is.
 
 ## How the differences were found
 

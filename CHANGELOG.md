@@ -5,6 +5,29 @@ copies a module names the spec-core commit in its own changelog.
 
 ## Unreleased
 
+### Changed since f9ce375
+
+What the tools that copied f9ce375 - all four - see when they copy again.
+
+- `pattern`: a brace alternative that names no path is refused in every
+  dialect, as the same text written alone is, and the refusal names the
+  alternative as the braces expanded it. In the `path` and `ripgrep`
+  dialects `{./,a}` matched every path, its `./` read since f9ce375 as the
+  contents of `.`, where `./` alone is refused; it is now
+  `the braces expand to "./", which names no path`, and so are `{./}`,
+  `{.,a}/` and `.{/,a}`. `gitignore` refused those already. Patterns every
+  dialect refused as `the pattern names no path` are refused naming the
+  alternative: `{.,a}` as `the braces expand to ".", which names no path`,
+  `{/,a}` and `{//,a}` as `"/"` and `"//"`, and in `gitignore` `{./,a}` as
+  `"./"`; `{,a}`, `{a,}` and `{}` as
+  `the braces expand to an empty pattern`. A pattern without braces is
+  refused in the words it was, and `a{,.ts}`, `src/{./,a}`, `{./a,b}` and
+  `{a/,b}` read as they did (ADR-0003).
+- `pattern`: `/./` and `/.//` are refused as `/.` is,
+  `the pattern names no path`, where the `path` and `ripgrep` dialects read
+  them as the root's contents, every rooted path. `gitignore` refused them
+  already (ADR-0003).
+
 ### Changed since 65ef842
 
 What the tools that copied 65ef842 - all four - see when they copy again.
