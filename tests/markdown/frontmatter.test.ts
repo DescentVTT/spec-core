@@ -374,6 +374,31 @@ describe('rendering', () => {
     expect(renderScalar('online')).toBe('online');
   });
 
+  it('writes a word of any script plain, as a status written back in Chinese is', () => {
+    const acute = String.fromCodePoint(0x301);
+    const virama = String.fromCodePoint(0x94d);
+    // Han, kana, hangul, Cyrillic and Latin letters; a combining mark after a
+    // letter; a digit of any script after one; and spaces and `._/+-` between.
+    const words = ['封存', '已接受', '歸檔', '归档', 'ステータス', '보관됨', 'статус', 'Ärger', `Cafe${acute}`, `स${virama}व`, '第2版', '版本２', 'x²', '暫定 v2.1_rc/3+4-5'];
+    for (const word of words) {
+      expect(renderScalar(word), word).toBe(word);
+      expect(parseInline(renderScalar(word)), word).toEqual({ kind: 'scalar', scalar: { text: word, quoted: false } });
+    }
+  });
+
+  it('still quotes what a plain scalar would not give back, in any script', () => {
+    const wide = String.fromCodePoint(0x3000);
+    const tab = String.fromCharCode(9);
+    const acute = String.fromCodePoint(0x301);
+    // `: ` and ` #`, a space at either end, a full-width space or punctuation,
+    // a digit or a mark first, an indicator first, and a tab.
+    const texts = ['封存: 是', '封存 #1', '封存 ', ' 封存', `${wide}封存`, `封${wide}存`, '封存，', '（封存）', '２０２６', '〇', acute, '-封存', '[封存]', `封存${tab}x`];
+    for (const text of texts) {
+      expect(renderScalar(text), text).toBe(JSON.stringify(text));
+      expect(parseInline(renderScalar(text)), text).toEqual({ kind: 'scalar', scalar: { text, quoted: true } });
+    }
+  });
+
   it('round-trips what it renders', () => {
     for (const text of ['archived', '035', 'yes', 'a: b', 'say "hi"', "it's", 'tab\there', 'x #y']) {
       expect(parseInline(renderScalar(text))).toEqual(expect.objectContaining({ kind: 'scalar', scalar: expect.objectContaining({ text }) }));
