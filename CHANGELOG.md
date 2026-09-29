@@ -5,6 +5,24 @@ copies a module names the spec-core commit in its own changelog.
 
 ## Unreleased
 
+### Changed since 56c7e54
+
+What the tools that copied 56c7e54 - all four - see when they copy again.
+
+- `pattern`: a leading `/` on a brace alternative means what it means on
+  the pattern written alone, so `{/docs,x}` is `/docs` or `x`. In the
+  `path` dialect `{/docs,x}` matched `docs` and what is beneath it, asked a
+  `literal` function about `docs` and named the base `''`; it now matches
+  `/docs` and what is beneath it, rooted at the filesystem's root, which no
+  relative path is under, asks about `/docs`, and names the base `/`. In the
+  `ripgrep` dialect it matched a `docs` at any depth and now matches only
+  the whole path `/docs`. In `gitignore` it excluded every `docs` directory
+  and now only the one at the root, as `/docs` does. `{//docs,x}`,
+  `{/./docs,x}`, `{.//docs,x}` and `{a,/b}c` read the same way, as
+  `//docs`, `/./docs`, `.//docs` and `/bc` do. `/{docs,x}`, `{docs,x}`,
+  `{a/,b}` and `a/{/b,c}` - `a/b` or `a/c`, as `a//b` is `a/b` - read as
+  they did, and `{/,a}` is refused as it was (ADR-0003).
+
 ### Changed since f9ce375
 
 What the tools that copied f9ce375 - all four - see when they copy again.
