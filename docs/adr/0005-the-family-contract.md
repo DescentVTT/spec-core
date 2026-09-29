@@ -40,6 +40,23 @@ tool's CLAUDE.md can point.
   removes or renames a field bumps it. Where findings have places, SARIF 2.1.0
   and GitHub annotations are offered; GitLab Code Quality is added as each
   tool next touches its reporter, so the family is not GitHub-only.
+- *Amended 2026-09-30*: **a GitLab Code Quality issue stays the same issue
+  while its finding does.** Its `fingerprint` is the SHA-256 of the finding's
+  identity - the rule, the file (or the document's id, which outlives a
+  rename), and the subject the finding is about: a brief id, a symbol, a pair
+  of briefs, a target - with the occurrence index added for the second and
+  later findings that share one identity. Never the message, the hint or the
+  line: GitLab tells a new issue from one it has seen by the fingerprint, and
+  a reworded message or a moved line would show as one problem fixed and
+  another found. `severity` is `major` for an error, `minor` for a warning and
+  `info` for a note; `critical` and `blocker` are for the cases a tool's README
+  names - in spec-guard a failing assertion, a rule that survived `prove`, a
+  ghost citation and a stale one under `--strict`; in spec-graph an error that
+  is one without `--strict`. The `description` holds the hint, the next
+  action, after the message. Where a tool does not yet - spec-brief's
+  fingerprint holds the message; spec-guard's `description` has no hint, and
+  its fingerprint of a directive it cannot read holds the message - that is a
+  defect to fix, not a dialect.
 - **Tools talk through their CLIs.** One tool reads another's versioned JSON;
   none imports another's package. Shared code arrives only through spec-core
   copies (ADR-0001). Each tool can be released, pinned and dropped on its own.
@@ -54,6 +71,19 @@ tool's CLAUDE.md can point.
 - **The document is the record.** No tool keeps a manifest, an index or a
   state file in the working tree. A brief's lifecycle is its directory and its
   `status`; a wave is computed from `dependsOn` and `wave`.
+- *Amended 2026-09-30*: **where a status is read.** Front matter first -
+  `status`, and the other keys a tool's README lists - then, where the front
+  matter names none, the other places each README lists: a `## Status`
+  section, a `Status:` label, the directory a document is in. spec-graph and
+  spec-guard read one more place, **a table of exactly two columns before the
+  document's first `##` heading**: a row whose left cell, the header row
+  included, is exactly a status key once emphasis is stripped - `Status`,
+  `State`, `狀態` or `状态`, in any case - gives its right cell as the status.
+  It ranks where each tool ranks a `## Status` section, and front matter still
+  wins. A table with more columns, or one after the first `##`, is never read
+  for a status: a legend of status words or a register of documents is not
+  the document's own status. Each of the two names, in its CHANGELOG, the
+  release that first reads it.
 - State that exists only while work is in flight - an escalation waiting for a
   person, a sandbox in use - lives **outside the working tree**, under the git
   common directory (`.git/spec-harness/`), and only its outcome is written back
@@ -71,6 +101,43 @@ tool's CLAUDE.md can point.
   (the fix is in) are different: premises run on every build with
   `--ignore-status` so that a stale brief fails CI; goals run when the round
   closes. A brief says which is which (spec-harness ADRs).
+
+  *Amended 2026-09-30*: **a status written in Chinese is read as the English
+  word it translates**, and each tool then does with it what it does with that
+  English word, so the family stays consistent without a rule of its own for
+  Chinese: `延後` is `deferred`, retired in spec-graph and in force in
+  spec-guard, as `deferred` is today. Traditional and Simplified are both
+  read. By the English word each maps to:
+
+  | English | Traditional | Simplified |
+  | --- | --- | --- |
+  | superseded | 已被取代, 被取代, 已取代 (see below), and `被` ... `取代`/`替代`/`取而代之` within 30 characters (`被 ADR-0003 取代`) | 已被取代, 被取代, 已取代, and the same `被` ... `取代` form |
+  | deprecated | 已棄用, 棄用, 已廢棄, 廢棄, 已停用, 已過時 | 已弃用, 弃用, 已废弃, 废弃, 已停用, 已过时 |
+  | rejected | 已否決, 否決, 已拒絕, 不採納 | 已否决, 否决, 已拒绝, 不采纳 |
+  | withdrawn | 已撤回, 撤回, 已作廢, 作廢 | 已撤回, 撤回, 已作废, 作废 |
+  | deferred | 延後, 暫緩, 擱置 | 延后, 暂缓, 搁置 |
+  | archived | 封存, 已封存, 歸檔, 已歸檔 | 封存, 已封存, 归档, 已归档 |
+  | final | 已定案, 定案, 已凍結 | 已定案, 定案, 已冻结 |
+  | provisionally accepted | 暫定 (so `暫定接受` is not accepted) | 暂定 |
+  | accepted | 已接受, 接受, 已採納, 採納, 已核准, 核准, 已批准, 批准, 已生效, 生效 | 已接受, 接受, 已采纳, 采纳, 已核准, 核准, 已批准, 批准, 已生效, 生效 |
+  | implemented | 已實施, 已完成 | 已实施, 已完成 |
+  | draft | 草稿, 草案 | 草稿, 草案 |
+  | proposed | 提議, 提案, 審查中, 審核中, 討論中, 待審, 待審核 | 提议, 提案, 审查中, 审核中, 讨论中, 待审, 待审核 |
+
+  - `已取代` alone, with emphasis, a date or punctuation around it, is
+    `superseded`. `已取代` followed directly by a document reference - after
+    optional spaces or a colon, an ASCII letter or digit, as in
+    `已取代 ADR-0002` - usually means this document supersedes that one, and
+    is not read as a status word at all.
+  - A Han word directly after a negation (`不 未 非 沒 没 無 无 勿`, and
+    `尚未`) is not read: `未接受`, `尚未核准`, `不再生效`. An entry that itself
+    starts with one, such as `不採納`, is matched as itself.
+  - `取代` without `被`, as in `已接受（取代 ADR-0002）`, is not retirement.
+  - The status key is read in Chinese too, `狀態` and `状态`, with an ASCII
+    colon or a full-width `：`, wherever a tool reads `status` today: a front
+    matter key, a heading, a label.
+
+  Each tool names, in its CHANGELOG, the release that first reads them.
 
 ### Git and the working tree
 
@@ -92,7 +159,18 @@ tool's CLAUDE.md can point.
 - In a repository where agents write the code, the rule files (ADRs, tool
   configuration, brief protections) are protected by the forge (CODEOWNERS,
   branch rules), and CI checks a change against the **base branch's** rules,
-  not the ones the change itself carries.
+  not the ones the change itself carries. *Amended 2026-09-30*: CODEOWNERS is
+  one forge's way, and GitLab Free has no Code Owners approval and no required
+  approval rules. The requirement, on any forge: nothing reaches the base
+  branch without a person merging or approving it, and a person reads every
+  change to a rule file before it does - the CI configuration that runs the
+  checks included, since a change can remove the job that would fail it.
+  GitHub meets it with `CODEOWNERS` and required review from code owners on a
+  protected branch; GitLab Premium with Code Owners and *Require approval from
+  code owners*; GitLab Free with a protected branch that no one may push to
+  and only Maintainers may merge, agents at the Developer role, and
+  *Pipelines must succeed*, so that a person merges every change.
+  [Adopting](../adopting.md) has the settings for both.
 
 ## Consequences
 
