@@ -31,6 +31,12 @@ What the tools that copied 7e41240 - all four - see when they copy again.
   alternative on its own: `{/docs,x}` typed in `sub` is `{/docs,sub/x}`, a
   `!` stays in front, and a `..` that climbs above the root is refused
   (ADR-0003).
+- `pattern`: `globAlternatives(source, options)` gives the alternatives a
+  pattern's braces give, each rooted or not as `parseGlob` reads it and
+  its text without the `./` and slashes it starts with, so a tool that
+  reads alternatives one by one - spec-brief refusing a rooted one,
+  spec-guard anchoring one and handing each to ripgrep - no longer expands
+  braces or reads a leading `./` and `/` itself (ADR-0003).
 - `text`: `displayWidth(text)` gives the columns a string takes in a
   terminal, per grapheme cluster: an East Asian Wide or Fullwidth character
   or an emoji sequence two, a mark, a joiner, a format or a control

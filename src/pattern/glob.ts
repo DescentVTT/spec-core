@@ -200,7 +200,7 @@ function build(source: string, options: GlobOptions): Glob | string {
     const parsed = parseAlternative(trailingSlash(alone.text, options.dialect), escapes);
     if (parsed === GLOBSTAR_IN_NAME) return `${GLOBSTAR_IN_NAME}: ${globstarAdvice(pattern)}`;
     if (typeof parsed === 'string') return parsed;
-    alternatives.push({ ...parsed, rooted: whole.rooted || (alone.rooted && !whole.dotted) });
+    alternatives.push({ ...parsed, rooted: rootedIn(whole, alone) });
   }
 
   const builder = new Builder();
@@ -347,10 +347,24 @@ function classEnd(pattern: string, open: number, escapes: boolean): number {
  * after a pattern's `./` is one of them, so `./{/docs,x}`, which is
  * `.//docs` or `./x`, roots neither.
  */
-function unrooted(text: string): { readonly text: string; readonly rooted: boolean; readonly dotted: boolean } {
+function unrooted(text: string): Lead {
   let rest = text;
   while (rest.startsWith('./')) rest = rest.slice(2).replace(/^\/+/, '');
   return { text: rest.replace(/^\/+/, ''), rooted: rest.startsWith('/'), dotted: rest !== text };
+}
+
+interface Lead {
+  readonly text: string;
+  readonly rooted: boolean;
+  readonly dotted: boolean;
+}
+
+/**
+ * Whether a text the braces give is rooted: by the pattern's own leading
+ * slash, or by its own when the pattern's `./` does not stand before it.
+ */
+function rootedIn(whole: Lead, alone: Lead): boolean {
+  return whole.rooted || (alone.rooted && !whole.dotted);
 }
 
 /** Whether a pattern's text names no path: nothing in it but `/` and `.` segments. */
@@ -713,6 +727,94 @@ export function parseGlobList(patterns: readonly string[], options: GlobOptions)
   };
 }
 
+/* ------------------------------------------------------------- alternatives */
+
+/** One text a pattern's braces give, as every dialect reads its start. */
+export interface GlobAlternative {
+  /**
+   * Led by a `/`, the pattern's or its own with no `./` of the pattern's
+   * before it: rooted at the filesystem's root in the `path` and `ripgrep`
+   * dialects, and anchored at the repository root in `gitignore`.
+   */
+  readonly rooted: boolean;
+  /**
+   * The text without the `./` and the slashes it starts with, the pattern's
+   * included, and with each `}` and `,` no group took written as a class of
+   * that one character, so that it reads the same inside braces again. Alone,
+   * it reads the same behind a `/` when rooted and behind a `./` when not,
+   * which keeps a `!` it starts with a character. A trailing `/` stays: what
+   * it means is the dialect's.
+   */
+  readonly text: string;
+}
+
+export type GlobAlternatives =
+  | {
+      readonly ok: true;
+      /** Led by a `/` of its own, before any `./`, which roots every alternative. */
+      readonly rooted: boolean;
+      /** In the order the braces give them. */
+      readonly alternatives: readonly GlobAlternative[];
+    }
+  | { readonly ok: false; readonly error: string };
+
+/**
+ * The alternatives a pattern's braces give, each read at its start as
+ * {@link parseGlob} reads it, for a tool that reads a pattern's alternatives
+ * one by one - to anchor a rooted one, to hand each to another engine - and
+ * would otherwise expand braces and read a leading `./` and `/` again itself.
+ *
+ * Braces expand first, and an alternative is rooted by a leading `/` on the
+ * pattern, or on the text the braces give when no `./` of the pattern's stands
+ * before it: `{/docs,x}` is `docs` rooted and `x`; `./{/docs,x}` and
+ * `{.//docs,x}` are `docs` and `x`, neither rooted; `a/{/b,c}` is `a//b` and
+ * `a/c`. A `!` after a `./` is a character, as it is to `parseGlob`: `./!a` is
+ * the name `!a`.
+ *
+ * A reading, not a verdict: refused are only what `parseGlob` refuses before
+ * it reads an alternative, in its words, and braces that do not expand. An
+ * alternative `parseGlob` refuses - `{/,x}` gives `/` - is given as read.
+ */
+export function globAlternatives(source: string, options: Pick<GlobOptions, 'backslash'> = {}): GlobAlternatives {
+  const escapes = options.backslash !== 'separator';
+  const prepared = prepare(source, escapes);
+  if (typeof prepared === 'string') return { ok: false, error: prepared };
+  const whole = unrooted(prepared.pattern);
+  const texts = expandBraces(whole.text, escapes);
+  if (typeof texts === 'string') return { ok: false, error: texts };
+  return {
+    ok: true,
+    rooted: whole.rooted,
+    alternatives: texts.map((text) => {
+      const alone = unrooted(text);
+      // Past its root, a text may start with a `./` of its own, as `/./docs`
+      // does, and names the same without it.
+      return { rooted: rootedIn(whole, alone), text: asCharacters(unrooted(alone.text).text) };
+    }),
+  };
+}
+
+/**
+ * A text the braces gave, with each `}` and `,` no group took written as the
+ * class of that one character: once the braces have expanded, that is every
+ * one outside a class and not escaped. Escapes and classes are copied as
+ * written. A `\` is always an escape here, since one read as a separator was
+ * a `/` before the braces expanded. A step past the end reads `''`, which
+ * adds nothing, so the bound could be one further.
+ */
+function asCharacters(text: string): string {
+  let out = '';
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text.charAt(i);
+    let next = i + 1;
+    if (ch === '\\') next = i + 2;
+    else if (ch === '[') next = Math.max(next, classEnd(text, i, true) + 1);
+    out += ch === '}' || ch === ',' ? `[${ch}]` : text.slice(i, next);
+    i = next - 1;
+  }
+  return out;
+}
+
 /* ----------------------------------------------------------------- rebasing */
 
 export type GlobRebase = { readonly ok: true; readonly pattern: string } | { readonly ok: false; readonly error: string };
@@ -767,9 +869,8 @@ export function rebaseGlob(entry: string, directory: string, options: Pick<GlobO
   const depths = new Set<number>();
   let rooted = false;
   for (const text of texts) {
-    // Rooted as `build` roots it: by its own leading slash, unless the
-    // pattern's `./` stands before it.
-    if (!whole.dotted && unrooted(text).rooted) {
+    // Rooted as `build` roots it, the pattern's own slash having been read.
+    if (rootedIn(whole, unrooted(text))) {
       rooted = true;
       pieces.push(text);
       continue;

@@ -188,6 +188,23 @@ starts with; and alternatives that must be written out and hold a `,` or a
 anchors a leading slash at the directory that holds the `.gitignore`, readings
 of their own that no tool run in a subdirectory asks for.
 
+*Amended 2026-09-30*: **`globAlternatives` gives a pattern's alternatives as
+they are read.** spec-brief refuses a rooted alternative, and spec-guard
+anchors one, hands each alternative to ripgrep and writes braces again around
+them; each expanded the braces and read a leading `./` and `/` again itself,
+and each copy fell behind the reading here. spec-guard took a `./` off before
+spec-core was asked, which left `./!a` a negation, and both tools read
+`.//docs` as rooted once this reading had stopped. `globAlternatives`
+expands the braces as `parseGlob` does and gives, for each alternative,
+whether it is rooted - by the pattern's own leading `/`, or by its own with
+no `./` of the pattern's before it - and its text without the `./` and the
+slashes it starts with, each `}` or `,` no group took written as a class of
+that one character so that the text reads the same inside braces again; and
+whether the pattern itself is rooted. It refuses only what stops it reading
+an alternative, in `parseGlob`'s words, and gives one `parseGlob` refuses as
+read. What a tool does with a rooted alternative, and what a trailing `/`
+means to it, stay the tool's.
+
 ## How the differences were found
 
 `tests/pattern/differential.test.ts` runs each tool's matcher, copied
