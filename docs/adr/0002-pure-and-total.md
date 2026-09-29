@@ -18,7 +18,17 @@ Two properties are therefore not preferences.
    platform. A function's answer depends on its arguments and nothing else, so
    a result computed on Windows is the result computed in Linux CI.
    `serveLines` takes its byte source and its writer as arguments for this
-   reason.
+   reason. *Amended 2026-09-30*: one answer also reads the runtime's
+   Unicode. `displayWidth`, the columns a text takes in a terminal, counts
+   per grapheme cluster with `Intl.Segmenter`, as a terminal draws them, and
+   reads general categories with `\p{...}`; both are the Unicode version the
+   runtime ships. Its widths are a fixed table, Unicode 16.0's East Asian
+   Width, the version Node 22 (from 22.16) and Node 24 both have, and the
+   segmenter is given a locale, so the host's default is never read. On the
+   same Node release every platform agrees; two runtimes can differ only on
+   a character assigned after the older one's Unicode version, which it
+   cannot name. Segmenting here instead would copy a second Unicode table
+   into every tool to settle characters no document the family reads holds.
 2. **Total, and bounded by its input.** No function takes longer than a
    stated function of the size of what it reads, whatever that input says:
    - No user-supplied string is compiled to a `RegExp`
