@@ -55,7 +55,17 @@ What the family shares, whatever you install ([ADR-0005](docs/adr/0005-the-famil
 - **False positives cost more than misses**, and every finding says what to do
   next.
 
-Why five tools and not the eleven once planned: [ADR-0006](docs/adr/0006-five-tools-not-eleven.md). How to adopt them, from one tool to the whole loop, and how to configure a repository where agents write most of the code: [docs/adopting.md](docs/adopting.md).
+Why five tools and not the eleven once planned: [ADR-0006](docs/adr/0006-five-tools-not-eleven.md). The family's documentation:
+
+- [Adopting](docs/adopting.md): from one tool to the whole loop, CI on GitHub
+  Actions and GitLab CI, and the forge settings for a repository where agents
+  write most of the code.
+- [Concepts](docs/concepts.md): brief, round, wave, ruling, base and the rest
+  of the family's words, each in a sentence or two.
+- [Tutorial](docs/tutorial.md): the whole loop in ten steps on a small
+  repository, with the output of each.
+- [Versions before 1.0](docs/adr/0009-versions-before-1-0.md): what a
+  release's number promises about your CI.
 
 ## Modules
 
@@ -104,6 +114,7 @@ as an ordinary diff.
 | [0006](docs/adr/0006-five-tools-not-eleven.md) | Five tools, not eleven |
 | [0007](docs/adr/0007-verification.md) | Verification is against something outside the code |
 | [0008](docs/adr/0008-toolchain.md) | The toolchain, and latest is not newest |
+| [0009](docs/adr/0009-versions-before-1-0.md) | Versions before 1.0 |
 
 ## License
 

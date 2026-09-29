@@ -20,6 +20,7 @@ tests.
 | `tests/` | Unit, oracle, enumeration and differential tests; `boundaries.test.ts` holds the rules above. |
 | `scripts/vendor.mjs` | Copies modules into a tool and checks a tool's copy. |
 | `docs/adr/` | The decisions, including the family's contract. |
+| `docs/` | The family's shared documentation: adopting the tools, their concepts, a tutorial. |
 
 ## Adding a module
 
