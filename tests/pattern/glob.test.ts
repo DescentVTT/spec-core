@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   compileGlob,
+  globAlternatives,
   globCovers,
   globWitness,
   isGlobSyntax,
@@ -752,6 +753,94 @@ describe('a list', () => {
       ok: false,
       error: '" !docs/[x": a "[" is never closed',
     });
+  });
+});
+
+describe("a pattern's alternatives, as each is read", () => {
+  const read = (source: string, options: Pick<GlobOptions, 'backslash'> = {}): { rooted: boolean; alternatives: [boolean, string][] } => {
+    const result = globAlternatives(source, options);
+    if (!result.ok) throw new Error(result.error);
+    return { rooted: result.rooted, alternatives: result.alternatives.map((alternative) => [alternative.rooted, alternative.text]) };
+  };
+  const refusal = (source: string): string => {
+    const result = globAlternatives(source);
+    if (result.ok) throw new Error(`"${source}" was read`);
+    return result.error;
+  };
+
+  it('gives each text the braces give, in their order, rooted as parseGlob roots it', () => {
+    expect(read('docs/*.md')).toEqual({ rooted: false, alternatives: [[false, 'docs/*.md']] });
+    expect(read('{a,{b,c}}d')).toEqual({ rooted: false, alternatives: [[false, 'ad'], [false, 'bd'], [false, 'cd']] });
+    // A leading slash on the pattern roots every alternative; one on an
+    // alternative roots that one; one after a segment roots nothing.
+    expect(read('/{docs,x}')).toEqual({ rooted: true, alternatives: [[true, 'docs'], [true, 'x']] });
+    expect(read('{/docs,x}')).toEqual({ rooted: false, alternatives: [[true, 'docs'], [false, 'x']] });
+    expect(read('a/{/b,c}')).toEqual({ rooted: false, alternatives: [[false, 'a//b'], [false, 'a/c']] });
+    // Without the slashes that lead it, and a `./` before them, as `/./docs`
+    // and `//docs` are read.
+    expect(read('//docs')).toEqual({ rooted: true, alternatives: [[true, 'docs']] });
+    expect(read('/./docs')).toEqual({ rooted: true, alternatives: [[true, 'docs']] });
+    expect(read(' /docs ')).toEqual({ rooted: true, alternatives: [[true, 'docs']] });
+    expect(read('{/./docs,/.//x}')).toEqual({ rooted: false, alternatives: [[true, 'docs'], [true, 'x']] });
+    // A `./` takes the slashes after it, and leaves a slash the braces give
+    // after the pattern's `./` rootless.
+    expect(read('.//docs')).toEqual({ rooted: false, alternatives: [[false, 'docs']] });
+    expect(read('{.//docs,./x}')).toEqual({ rooted: false, alternatives: [[false, 'docs'], [false, 'x']] });
+    expect(read('./{/docs,x}')).toEqual({ rooted: false, alternatives: [[false, 'docs'], [false, 'x']] });
+    // A `!` after a `./` is a character of a name, not a negation.
+    expect(read('./!a')).toEqual({ rooted: false, alternatives: [[false, '!a']] });
+    expect(read('{./!a,x}')).toEqual({ rooted: false, alternatives: [[false, '!a'], [false, 'x']] });
+    // A trailing slash stays, for the dialect to read.
+    expect(read('{src/,/lib/}')).toEqual({ rooted: false, alternatives: [[false, 'src/'], [true, 'lib/']] });
+    // A `\` is a separator when the caller reads it as one.
+    expect(read('{\\docs,x}', { backslash: 'separator' })).toEqual({ rooted: false, alternatives: [[true, 'docs'], [false, 'x']] });
+  });
+
+  it('gives each rooted alternative as parseGlob reads it, in every dialect', () => {
+    const paths = ['docs', 'docs/a', 'x/docs', '/docs', '/docs/a', 'x', 'y/x', '/x', 'a/b', '/a/b', '!a', 'x/!a'];
+    for (const options of [PATH, RIPGREP, GITIGNORE]) {
+      for (const pattern of ['{/docs,x}', '/{docs,x}', './{/docs,x}', '{.//docs,/x}', 'a/{/b,c}', '{/a/b,x}', './!a', '{./!a,/x}']) {
+        const result = globAlternatives(pattern);
+        if (!result.ok) throw new Error(result.error);
+        // Written alone, a relative text goes behind `./`, which keeps a `!`
+        // it starts with a character.
+        const alone = result.alternatives.map((alternative) => `${alternative.rooted ? '/' : './'}${alternative.text}`);
+        const either = paths.map((path) => alone.some((text) => matches(text, path, options)));
+        expect(paths.map((path) => matches(pattern, path, options)), `${options.dialect}: ${pattern}`).toEqual(either);
+      }
+    }
+  });
+
+  it('writes a brace or a comma no group took as a class, so the text reads the same inside braces again', () => {
+    expect(read('{/a,b}c,d')).toEqual({ rooted: false, alternatives: [[true, 'ac[,]d'], [false, 'bc[,]d']] });
+    expect(read('{/a,b}}')).toEqual({ rooted: false, alternatives: [[true, 'a[}]'], [false, 'b[}]']] });
+    // An escaped one, and one inside a class, are copied as written.
+    expect(read('{/a,b\\,c\\}}')).toEqual({ rooted: false, alternatives: [[true, 'a'], [false, 'b\\,c\\}']] });
+    expect(read('{/[,}]a,[!,]b}')).toEqual({ rooted: false, alternatives: [[true, '[,}]a'], [false, '[!,]b']] });
+    expect(read('{/[\\],]a,b}')).toEqual({ rooted: false, alternatives: [[true, '[\\],]a'], [false, 'b']] });
+    expect(read('{/[],]a,b}')).toEqual({ rooted: false, alternatives: [[true, '[],]a'], [false, 'b']] });
+    // A `[` that closes no class is a character, and a `]` that closes none.
+    expect(read('{/[a,b}')).toEqual({ rooted: false, alternatives: [[true, '[a'], [false, 'b']] });
+    expect(read('{/a,b}c,]')).toEqual({ rooted: false, alternatives: [[true, 'ac[,]]'], [false, 'bc[,]]']] });
+    // Written again inside braces, the alternatives read as the pattern did.
+    const paths = ['ac,d', 'bc,d', '/ac,d', 'a}', 'b}', '/a}', 'b,c}', ',a', '/,a', ']a', '/]a'];
+    for (const pattern of ['{/a,b}c,d', '{/a,b}}', '{/a,b\\,c\\}}', '{/[,}]a,[!,]b}', '{/[\\],]a,b}', '{/[],]a,b}']) {
+      const result = globAlternatives(pattern);
+      if (!result.ok) throw new Error(result.error);
+      const again = `{${result.alternatives.map((alternative) => `${alternative.rooted ? '/' : ''}${alternative.text}`).join(',')}}`;
+      expect(paths.map((path) => matches(again, path)), pattern).toEqual(paths.map((path) => matches(pattern, path)));
+    }
+  });
+
+  it('refuses only what stops it reading an alternative, in the words parseGlob uses', () => {
+    expect(refusal('')).toBe('the pattern is empty');
+    expect(refusal('!docs')).toBe('a negated pattern is a list entry, not a glob; narrow the positive pattern');
+    expect(refusal('+(a|b)')).toBe(error('+(a|b)'));
+    expect(refusal('{a,b')).toBe('a "{" is never closed');
+    expect(refusal('{a,b}'.repeat(9))).toBe(`the braces expand to more than ${MAX_ALTERNATIVES} patterns`);
+    // An alternative parseGlob refuses is read all the same.
+    expect(read('{/,x}')).toEqual({ rooted: false, alternatives: [[true, ''], [false, 'x']] });
+    expect(read('./')).toEqual({ rooted: false, alternatives: [[false, '']] });
   });
 });
 
