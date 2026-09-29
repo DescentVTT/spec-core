@@ -126,16 +126,19 @@ tool's CLAUDE.md can point.
 
   - `已取代` alone, with emphasis, a date or punctuation around it, is
     `superseded`. `已取代` followed directly by a document reference - after
-    optional spaces or a colon, an ASCII letter or digit, as in
-    `已取代 ADR-0002` - usually means this document supersedes that one, and
-    is not read as a status word at all.
+    optional spaces or a colon, a letter or digit, as in `已取代 ADR-0002` -
+    usually means this document supersedes that one, and is not read as a
+    status word at all.
   - A Han word directly after a negation (`不 未 非 沒 没 無 无 勿`, and
-    `尚未`) is not read: `未接受`, `尚未核准`, `不再生效`. An entry that itself
-    starts with one, such as `不採納`, is matched as itself.
+    `尚未`, `不再`) is not read: `未接受`, `尚未核准`, `不再生效`. An entry
+    that itself starts with one, such as `不採納`, is matched as itself.
   - `取代` without `被`, as in `已接受（取代 ADR-0002）`, is not retirement.
-  - The status key is read in Chinese too, `狀態` and `状态`, with an ASCII
-    colon or a full-width `：`, wherever a tool reads `status` today: a front
-    matter key, a heading, a label.
+  - The status key is read in Chinese too, `狀態` and `状态`, wherever a tool
+    reads `status` today. A heading or a label takes an ASCII colon or a
+    full-width `：`. Front matter is YAML, where only the ASCII colon
+    separates a key from its value: `狀態: 已接受` is read, and `狀態：已接受`
+    is a line that is not a key, reported as unreadable front matter (spec-core
+    ADR-0004), never guessed at.
 
   Each tool names, in its CHANGELOG, the release that first reads them.
 
