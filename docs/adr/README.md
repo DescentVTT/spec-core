@@ -10,3 +10,4 @@
 | [0006](0006-five-tools-not-eleven.md) | accepted | Five tools, not eleven |
 | [0007](0007-verification.md) | accepted | Verification is against something outside the code |
 | [0008](0008-toolchain.md) | accepted | The toolchain, and latest is not newest |
+| [0009](0009-versions-before-1-0.md) | accepted | Versions before 1.0 |
