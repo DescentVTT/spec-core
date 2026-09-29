@@ -23,6 +23,13 @@ What the tools that copied 7e41240 - all four - see when they copy again.
   (ADR-0004).
   Upgrading: nothing to change; a test that pins the quoted form of such a
   value changes.
+- `markdown`: front matter reads a key of any script - a letter or `_`
+  first, then letters, marks, digits and `_.-` - so `狀態: 已接受` is the
+  entry `狀態`, where it was the problem `not a "key: value" line` and no
+  entry. A digit or a mark first, a space, punctuation and a full-width
+  colon are still no key (ADR-0004).
+  Upgrading: a tool that reads `狀態` or `状态` beside `status` finds it in
+  front matter; a test that pinned the problem changes.
 
 ### Added since 7e41240
 

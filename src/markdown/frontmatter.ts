@@ -90,7 +90,14 @@ export function frontMatterCloses(line: string, kind: FrontMatterKind): boolean 
   return (kind === 'yaml' ? YAML_CLOSE : TOML_FENCE).test(line);
 }
 
-const KEY = /^([A-Za-z_][\w.-]*)[ \t]*:(?:[ \t]+(.*))?$/;
+/**
+ * A key and what follows its colon. A key is a word of any script, as a YAML
+ * plain key may be: a letter or `_` first, then letters, marks, digits and
+ * `_.-`, so `狀態` and `状态` are keys as `status` is. Nothing else is one: a
+ * digit or a mark first, a space, punctuation, and a full-width colon, which
+ * YAML does not read as one.
+ */
+const KEY = /^([\p{L}_][\p{L}\p{M}\p{N}_.-]*)[ \t]*:(?:[ \t]+(.*))?$/u;
 const SEQUENCE_ITEM = /^([ \t]*)-(?:[ \t]+(.*))?$/;
 const BLANK_OR_COMMENT = /^[ \t]*(?:#.*)?$/;
 

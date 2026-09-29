@@ -65,6 +65,15 @@ with no front matter and say what went wrong. *Amended 2026-09-27*: the scan
 read the two alike, and spec-graph read the first line again to tell them
 apart.
 
+A front matter key is a word of any script, as a YAML plain key may be: a
+letter or `_` first, then letters, marks, digits and `_.-`. *Amended
+2026-09-30*: only ASCII was read, a letter or `_` and then letters, digits
+and `_.-`, so `狀態: 已接受` was `not a "key: value" line` and no entry, and
+a status a document gave in Chinese never reached a tool that reads `狀態`
+beside `status`. A digit or a mark first, a space, punctuation and a
+full-width colon `：` still make no key: front matter is YAML, which reads
+no full-width colon as one, and such a line is reported as it was.
+
 Front matter is written back one key at a time, every other line left as it
 was, and `renderScalar` writes a value plain only where a YAML plain scalar
 reads back as the same string: a letter first, then letters, marks, digits,

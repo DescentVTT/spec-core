@@ -100,6 +100,39 @@ describe('the block', () => {
     expect(fm.entries.map((e) => e.key)).toEqual(['a', 'A']);
   });
 
+  it('reads a key of any script, as a YAML plain key may be', () => {
+    const acute = String.fromCodePoint(0x301);
+    const text = ['---', '狀態: 已接受', '状态: 草稿', 'ステータス: x', `Cafe${acute}_2.b-c: y`, '版本２: z', '_私有: w', 'status: kept', '---'].join('\n');
+    const fm = read(text);
+    expect(fm.problems).toEqual([]);
+    expect(fm.entries.map((e) => [e.key, e.name, e.value])).toEqual([
+      ['狀態', '狀態', scalar('已接受')],
+      ['状态', '状态', scalar('草稿')],
+      ['ステータス', 'ステータス', scalar('x')],
+      [`Cafe${acute}_2.b-c`, `cafe${acute}2.bc`, scalar('y')],
+      ['版本２', '版本２', scalar('z')],
+      ['_私有', '私有', scalar('w')],
+      ['status', 'status', scalar('kept')],
+    ]);
+    expect(findEntry(fm, '狀態')?.line).toBe(1);
+    expect(fm.entries[0]).toMatchObject({ keyStart: 4, valueStart: 8, valueEnd: 11 });
+    expect(text.slice(fm.entries[0]?.valueStart, fm.entries[0]?.valueEnd)).toBe('已接受');
+    // Nested one level, as an ASCII key is, and edited in place.
+    const nested = read('---\nmeta:\n  狀態: 已接受\n---', { nested: true });
+    expect(nested.entries.map((e) => e.key)).toEqual(['meta.狀態']);
+    expect(setEntry(['---', '狀態: 草稿', '---'], read('---\n狀態: 草稿\n---'), '狀態', '已接受')).toEqual(['---', '狀態: 已接受', '---']);
+  });
+
+  it('still refuses a line whose key is not a word', () => {
+    const wide = String.fromCodePoint(0x3000);
+    const acute = String.fromCodePoint(0x301);
+    // A digit or a mark first, a space, punctuation, a full-width colon, and
+    // no space after the colon.
+    for (const line of ['2狀態: x', `${acute}a: x`, '狀 態: x', `狀${wide}態: x`, '狀態！: x', '狀態：已接受', '狀態:已接受', '（狀態）: x']) {
+      expect(read(`---\n${line}\n---`), line).toMatchObject({ entries: [], problems: [{ line: 1, message: 'not a "key: value" line' }] });
+    }
+  });
+
   it('reads past a byte-order mark and counts offsets after it', () => {
     const fm = read('\uFEFF---\na: 1\n---');
     expect(fm.entries[0]).toMatchObject({ key: 'a', keyStart: 4, valueStart: 7, valueEnd: 8 });
