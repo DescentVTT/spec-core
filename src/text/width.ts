@@ -81,8 +81,9 @@ let graphemes: Intl.Segmenter | undefined;
 /** The columns a text takes in a terminal. */
 export function displayWidth(text: string): number {
   // A named locale, so the host's default is never read; clusters are the
-  // same in every locale.
-  graphemes ??= new Intl.Segmenter('en', { granularity: 'grapheme' });
+  // same in every locale, and they are what a segmenter gives unless told
+  // otherwise.
+  graphemes ??= new Intl.Segmenter('en');
   let width = 0;
   for (const { segment } of graphemes.segment(text)) width += clusterWidth(segment);
   return width;
