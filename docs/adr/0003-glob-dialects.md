@@ -131,7 +131,23 @@ Also shared, found when the three engines were run beside this one
   `src/{./,a}` is the contents of `src` or `src/a`, `a{,.ts}` is `a` or
   `a.ts`, and a leading `./` on a longer alternative is dropped, as on a
   whole pattern, so `{./a,b}` reads as `{a,b}` - in `ripgrep`, `a` at any
-  depth, as `./a` is.
+  depth, as `./a` is. *Amended 2026-09-29*: braces expand before a leading
+  slash is read, too. An alternative that starts with `/` reads as that
+  text written alone, in each dialect's terms: in `path` and `ripgrep` it is
+  rooted at the filesystem's root, and in `gitignore` it is anchored at the
+  repository root, as git reads a leading slash. So `{/docs,x}` is `/docs`
+  or `x`. The pattern's own leading slash was read before the braces were
+  expanded, and one an alternative gave was read after, as an empty
+  segment, which names nothing: `{/docs,x}` read `docs`, a literal relative
+  to the root in `path`, a name at any depth in `ripgrep` and `gitignore`.
+  A `/` before the braces still roots every alternative, `/{docs,x}` being
+  `/docs` or `/x`; and a `/` after a segment starts no text the braces
+  give: `a/{/b,c}` is `a//b` or `a/c`, and `a//b` is `a/b`, its empty
+  segment naming nothing, as it read before. A leading `./` is dropped
+  first, from an alternative as from a whole pattern, so `{.//docs,x}` is
+  `/docs` or `x`, as `.//docs` is `/docs`. An alternative that names no
+  path is refused before its slash is read, as it was: `{/,a}` is
+  `the braces expand to "/", which names no path`.
 
 ## How the differences were found
 

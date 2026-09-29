@@ -221,6 +221,111 @@ describe('the syntax every dialect shares', () => {
     expect(matches('{a/,b}', 'a')).toBe(false);
   });
 
+  describe('a leading slash on a brace alternative', () => {
+    // Rooted paths beside relative ones, and a name at the root, below it,
+    // and at any depth, so a slash that roots, anchors or is dropped answers
+    // differently.
+    const paths = ['docs', 'docs/a', 'x/docs', 'x/docs/a', 'y/docs', 'y/docs/a', '/docs', '/docs/a', 'x', 'x/y', 'y/x', '/x', '/x/y', 'a/b', 'a/c', 'a/b/z', 'x/a/b', '/a/b', 'ac', 'bc', '/bc'];
+    const dialects = [PATH, RIPGREP, GITIGNORE];
+    const answers = (pattern: string, options: GlobOptions): boolean[] => paths.map((path) => matches(pattern, path, options));
+    const either = (patterns: readonly string[], options: GlobOptions): boolean[] =>
+      paths.map((path) => patterns.some((pattern) => matches(pattern, path, options)));
+
+    it('means what it means on the pattern written alone, in each dialect', () => {
+      // Braces expand before anything else is decided, the leading slash
+      // included, so each alternative reads as that text alone reads.
+      const cases: [string, ...string[]][] = [
+        ['{/docs,x}', '/docs', 'x'],
+        ['{x,/docs}', 'x', '/docs'],
+        ['{/docs,/x}', '/docs', '/x'],
+        ['{/docs}', '/docs'],
+        ['{x,{/docs,y}}', 'x', '/docs', 'y'],
+        ['{//docs,x}', '//docs', 'x'],
+        ['{/docs/,x}', '/docs/', 'x'],
+        ['{/a/b,x}', '/a/b', 'x'],
+        ['{/*,x}', '/*', 'x'],
+        ['{/**/docs,x}', '/**/docs', 'x'],
+        ['{a,/b}c', 'ac', '/bc'],
+        // A leading `./` is dropped first, from the alternative as from a
+        // whole pattern, and a slash after it leads what is left.
+        ['{.//docs,x}', './/docs', 'x'],
+        ['{././/docs,x}', '././/docs', 'x'],
+        ['./{/docs,x}', './/docs', './x'],
+      ];
+      for (const options of dialects) {
+        for (const [braced, ...alone] of cases) {
+          expect(answers(braced, options), `${options.dialect}: ${braced}`).toEqual(either(alone, options));
+        }
+      }
+    });
+
+    it('roots the alternative in the path and ripgrep dialects, and anchors it in gitignore', () => {
+      // The filesystem's root, which a relative path is never under.
+      expect(matches('{/docs,x}', '/docs/a')).toBe(true);
+      expect(matches('{/docs,x}', 'docs')).toBe(false);
+      expect(matches('{/docs,x}', '/x')).toBe(false);
+      // A whole path, not a name at any depth, beside one that still is.
+      expect(matches('{/docs,x}', '/docs', RIPGREP)).toBe(true);
+      expect(matches('{/docs,x}', 'docs', RIPGREP)).toBe(false);
+      expect(matches('{/docs,x}', 'x/docs', RIPGREP)).toBe(false);
+      expect(matches('{/docs,x}', 'y/x', RIPGREP)).toBe(true);
+      // The repository root, with everything in it, beside one that floats.
+      expect(matches('{/docs,x}', 'docs/a', GITIGNORE)).toBe(true);
+      expect(matches('{/docs,x}', 'y/docs', GITIGNORE)).toBe(false);
+      expect(matches('{/docs,x}', 'y/x/a', GITIGNORE)).toBe(true);
+      expect(matches('{/docs/,x}', 'docs', GITIGNORE)).toBe(true);
+      expect(matches('{/docs/,x}', 'y/docs/a', GITIGNORE)).toBe(false);
+    });
+
+    it('asks a literal function about the rooted path, and walks from the root', () => {
+      const asked: string[] = [];
+      const glob = compileGlob('{/docs,x}', {
+        ...PATH,
+        literal: (path) => {
+          asked.push(path);
+          return 'directory';
+        },
+      });
+      expect(asked).toEqual(['/docs', 'x']);
+      expect(glob.bases).toEqual(['/docs', 'x']);
+      expect(compileGlob('{/docs,x}', PATH).bases).toEqual(['/', '']);
+      expect(compileGlob('{/docs/*.md,x}', RIPGREP).bases).toEqual(['/docs', '']);
+      expect(compileGlob('{/src/gen/*.ts,x}', GITIGNORE).bases).toEqual(['src/gen', '']);
+    });
+
+    it('leaves a slash after a segment a doubled slash, and a slash before the braces rooting every alternative', () => {
+      for (const options of dialects) {
+        const reads = (pattern: string, ...alone: string[]): void => {
+          expect(answers(pattern, options), `${options.dialect}: ${pattern}`).toEqual(either(alone, options));
+        };
+        // `a/{/b,c}` is `a//b` or `a/c`, and the empty segment in `a//b`
+        // names nothing: it is `a/b`. Only a slash that starts a text leads it.
+        reads('a/{/b,c}', 'a//b', 'a/c');
+        reads('a/{/b,c}', 'a/b', 'a/c');
+        reads('a{/b,c}', 'a/b', 'ac');
+        reads('{a//b,x}', 'a/b', 'x');
+        reads('/{docs,x}', '/docs', '/x');
+        reads('{docs,x}', 'docs', 'x');
+      }
+      expect(matches('a/{/b,c}', 'a/b', RIPGREP)).toBe(true);
+      expect(matches('a/{/b,c}', 'x/a/b', GITIGNORE)).toBe(false);
+      expect(matches('/{docs,x}', '/x')).toBe(true);
+      expect(matches('/{docs,x}', 'x')).toBe(false);
+      expect(matches('/{docs,x}', 'x/y', GITIGNORE)).toBe(true);
+      expect(matches('/{docs,x}', 'y/x', GITIGNORE)).toBe(false);
+      expect(matches('{docs,x}', 'y/x', GITIGNORE)).toBe(true);
+    });
+
+    it('still refuses an alternative that names no path, before its slash is read', () => {
+      for (const options of dialects) {
+        expect(error('{/,a}', options)).toBe('the braces expand to "/", which names no path');
+        expect(error('{/.,a}', options)).toBe('the braces expand to "/.", which names no path');
+        expect(error('{.//,a}', options)).toBe('the braces expand to ".//", which names no path');
+        expect(error('{/../a,b}', options)).toBe('a pattern cannot climb out of its root with ".."');
+      }
+    });
+  });
+
   it('names the bracket that is never closed, not a brace closed before the separator', () => {
     // A class never reaches past a `/`, so the `}` before one closes the
     // group, and what is left open is the `[`.
