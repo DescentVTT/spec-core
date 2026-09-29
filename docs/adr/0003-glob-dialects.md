@@ -163,6 +163,31 @@ Also shared, found when the three engines were run beside this one
   `the pattern names the root itself, not a path under it`, where `.//./`
   was refused as `/./` is, `the pattern names no path`.
 
+*Amended 2026-09-30*: **a pattern typed below the root is rebased onto it by
+`rebaseGlob`, braces first.** A tool run in a subdirectory that matches whole
+paths from the root reads what was typed from where it was typed - spec-graph
+re-anchors it (its ADR-0018) - and joining the directory to the pattern as
+strings did that without reading braces: `{/docs,x}` typed in `sub` read
+`sub/docs` or `sub/x` while `/docs` alone stayed rooted, `!/docs` became
+`!sub//docs`, and `{/,x}`, refused at the root, read the contents of `sub`.
+`rebaseGlob` reads the pattern as the `path` dialect does and rebases each
+alternative the braces give as that text written alone would be. One with a
+leading `/` is rooted at the filesystem's root, which no directory moves, and
+is kept; any other gets the directory in front, a leading `..` climbing out of
+it. So `{/docs,x}` typed in `sub` is `{/docs,sub/x}`, `{../a,b}` typed in
+`sub/deep` is `{sub/a,sub/deep/b}`, and `{/,x}` is `{/,sub/x}`, refused as it
+is at the root. When every alternative is rebased alike the braces stay as
+written, `{a,b}` being `sub/{a,b}`, and a `!` before the pattern stays before
+it, as a list reads one. What cannot be rebased faithfully is refused with a
+reason rather than written: a `..` that climbs above the root, in the words a
+pattern climbing out is refused in; a directory whose name a pattern would
+read as syntax - a `*`, `?`, `[`, `{` or `\` in it, or a `!` or a space it
+starts with; and alternatives that must be written out and hold a `,` or a
+`}`, which would read as braces. The other two dialects are not rebased: a
+`ripgrep` or `gitignore` pattern without a slash matches at any depth, and git
+anchors a leading slash at the directory that holds the `.gitignore`, readings
+of their own that no tool run in a subdirectory asks for.
+
 ## How the differences were found
 
 `tests/pattern/differential.test.ts` runs each tool's matcher, copied
