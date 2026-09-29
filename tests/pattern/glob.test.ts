@@ -797,7 +797,9 @@ describe('a pattern typed below the root', () => {
     expect(rebased('//docs', 'sub')).toBe('//docs');
     expect(rebased('/{docs,x}', 'sub')).toBe('/{docs,x}');
     expect(rebased('{/docs,/x}', 'sub')).toBe('{/docs,/x}');
+    expect(rebased('{/a,/b}/c', 'sub')).toBe('{/a,/b}/c');
     expect(rebased(' /docs', 'a[1]')).toBe('/docs');
+    expect(rebased('{/docs,/x}', 'a[1]')).toBe('{/docs,/x}');
     // A `\` is a separator when the caller reads it as one, so `\docs` is `/docs`.
     expect(rebased('\\docs', 'sub', SEPARATOR)).toBe('/docs');
     expect(answers(rebased('/docs', 'sub'))).toEqual(either('/docs'));
