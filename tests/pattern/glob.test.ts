@@ -7,6 +7,7 @@ import {
   isGlobSyntax,
   parseGlob,
   parseGlobList,
+  rebaseGlob,
   AutomatonTooLarge,
   GlobError,
   MAX_ALTERNATIVES,
@@ -751,6 +752,150 @@ describe('a list', () => {
       ok: false,
       error: '" !docs/[x": a "[" is never closed',
     });
+  });
+});
+
+describe('a pattern typed below the root', () => {
+  const SEPARATOR: Pick<GlobOptions, 'backslash'> = { backslash: 'separator' };
+  const rebased = (entry: string, directory: string, options: Pick<GlobOptions, 'backslash'> = {}): string => {
+    const result = rebaseGlob(entry, directory, options);
+    if (!result.ok) throw new Error(result.error);
+    return result.pattern;
+  };
+  const refused = (entry: string, directory: string, options: Pick<GlobOptions, 'backslash'> = {}): string => {
+    const result = rebaseGlob(entry, directory, options);
+    if (result.ok) throw new Error(`"${entry}" was rebased to "${result.pattern}"`);
+    return result.error;
+  };
+  // Relative paths inside and outside the directory, and rooted ones.
+  const paths = ['sub/docs', 'sub/docs/a', 'sub/x', 'sub/x/a', 'docs', 'docs/a', 'x', '/docs', '/docs/a', '/x', 'sub/deep/b', 'sub/a', 'sub/b', 'a', 'b'];
+  // What the rebased pattern matches, as the list a tool compiles it into.
+  const answers = (pattern: string): boolean[] => {
+    const parsed = parseGlobList([pattern], PATH);
+    if (!parsed.ok) throw new Error(parsed.error);
+    return paths.map((path) => parsed.list.match(path));
+  };
+  const either = (...patterns: string[]): boolean[] => paths.map((path) => patterns.some((pattern) => matches(pattern, path)));
+
+  it('puts the directory in front of a relative pattern, keeping its braces', () => {
+    expect(rebased('docs/*.md', 'sub')).toBe('sub/docs/*.md');
+    expect(rebased('*.md', 'sub/deep')).toBe('sub/deep/*.md');
+    expect(rebased('{docs,x}', 'sub')).toBe('sub/{docs,x}');
+    expect(rebased('{a,b}/*.md', 'sub')).toBe('sub/{a,b}/*.md');
+    // Read as `parseGlob` reads it: trimmed, and without its `./`.
+    expect(rebased('  docs ', 'sub')).toBe('sub/docs');
+    expect(rebased('./docs', 'sub')).toBe('sub/docs');
+    expect(answers(rebased('{docs,x}', 'sub'))).toEqual(either('sub/docs', 'sub/x'));
+  });
+
+  it('leaves an entry typed at the root as it was typed', () => {
+    for (const entry of ['docs', ' docs', '{/docs,x}', '!/docs', '../x', '']) expect(rebased(entry, '')).toBe(entry);
+  });
+
+  it('keeps a rooted pattern, which names the same place from anywhere, and asks nothing of the directory', () => {
+    expect(rebased('/docs', 'sub')).toBe('/docs');
+    expect(rebased('//docs', 'sub')).toBe('//docs');
+    expect(rebased('/{docs,x}', 'sub')).toBe('/{docs,x}');
+    expect(rebased('{/docs,/x}', 'sub')).toBe('{/docs,/x}');
+    expect(rebased(' /docs', 'a[1]')).toBe('/docs');
+    // A `\` is a separator when the caller reads it as one, so `\docs` is `/docs`.
+    expect(rebased('\\docs', 'sub', SEPARATOR)).toBe('/docs');
+    expect(answers(rebased('/docs', 'sub'))).toEqual(either('/docs'));
+  });
+
+  it('rebases each brace alternative as that text written alone, rooted or relative', () => {
+    // The rooted alternative is kept, as `/docs` is, and the relative one moves.
+    expect(rebased('{/docs,x}', 'sub')).toBe('{/docs,sub/x}');
+    expect(answers(rebased('{/docs,x}', 'sub'))).toEqual(either('/docs', 'sub/x'));
+    expect(rebased('{x,/docs}/*.md', 'sub')).toBe('{sub/x/*.md,/docs/*.md}');
+    expect(rebased('{/docs,x}', 'sub', SEPARATOR)).toBe('{/docs,sub/x}');
+    expect(rebased('{\\docs,x}', 'sub', SEPARATOR)).toBe('{/docs,sub/x}');
+    // Only a slash that starts a text roots it: after a segment, or after the
+    // pattern's `./`, it is a separator, and the braces stay.
+    expect(rebased('a/{/b,c}', 'sub')).toBe('sub/a/{/b,c}');
+    expect(rebased('./{/docs,x}', 'sub')).toBe('sub/{/docs,x}');
+    expect(answers(rebased('./{/docs,x}', 'sub'))).toEqual(either('sub/docs', 'sub/x'));
+    expect(rebased('{.//docs,x}', 'sub')).toBe('sub/{.//docs,x}');
+    expect(answers(rebased('{.//docs,x}', 'sub'))).toEqual(either('sub/docs', 'sub/x'));
+    // An alternative that names no path is kept as the braces gave it, and
+    // refused as it is at the root: typed below it, `{/,x}` is not the
+    // directory's contents.
+    expect(rebased('{/,x}', 'sub')).toBe('{/,sub/x}');
+    expect(error(rebased('{/,x}', 'sub'))).toBe('the braces expand to "/", which names no path');
+  });
+
+  it('keeps a leading `!` in front, as a list reads it', () => {
+    expect(rebased('!docs/x', 'sub')).toBe('!sub/docs/x');
+    expect(rebased(' ! docs', 'sub')).toBe('!sub/docs');
+    expect(rebased('!/docs', 'sub')).toBe('!/docs');
+    expect(rebased('!{/docs,x}', 'sub')).toBe('!{/docs,sub/x}');
+    const list = parseGlobList(['sub/**', rebased('!docs/**', 'sub')], PATH);
+    if (!list.ok) throw new Error(list.error);
+    expect(list.list.match('sub/x/a')).toBe(true);
+    expect(list.list.match('sub/docs/a')).toBe(false);
+  });
+
+  it('climbs out of the directory with a leading `..`, and no further than the root', () => {
+    expect(rebased('../*.md', 'docs/deep')).toBe('docs/*.md');
+    expect(rebased('../../*.md', 'a/b/c')).toBe('a/*.md');
+    expect(rebased('..', 'docs/deep')).toBe('docs/');
+    expect(rebased('./../x', 'sub/deep')).toBe('sub/x');
+    expect(rebased('..//../x', 'a/b/c')).toBe('a/x');
+    expect(rebased('../{a,b}', 'sub/deep')).toBe('sub/{a,b}');
+    // To the root itself, the rest is read from the root, and the root alone
+    // is refused as `./` is.
+    expect(rebased('../x', 'sub')).toBe('./x');
+    expect(answers(rebased('../x', 'sub'))).toEqual(either('x'));
+    expect(rebased('../{/docs,x}', 'sub')).toBe('./{/docs,x}');
+    expect(answers(rebased('../{/docs,x}', 'sub'))).toEqual(either('docs', 'x'));
+    expect(rebased('..', 'sub')).toBe('./');
+    expect(error(rebased('..', 'sub'))).toBe('the pattern names the root itself, not a path under it');
+    // Each alternative climbs as far as it says.
+    expect(rebased('{../a,b}', 'sub/deep')).toBe('{sub/a,sub/deep/b}');
+    expect(answers(rebased('{../a,b}', 'sub/deep'))).toEqual(either('sub/a', 'sub/deep/b'));
+    expect(rebased('{../a,../b}', 'sub/deep')).toBe('{sub/a,sub/b}');
+    expect(rebased('{..,x}/a', 'sub/deep')).toBe('{sub/a,sub/deep/x/a}');
+    expect(rebased('..{/a,b}', 'sub/deep')).toBe('{sub/a,sub/deep/..b}');
+    // Past the root is refused, in the words a pattern climbing out is.
+    const climbs = 'a pattern cannot climb out of its root with ".."';
+    expect(refused('../../x', 'sub')).toBe(climbs);
+    expect(refused('{x,../../y}', 'sub')).toBe(climbs);
+    expect(refused('..\\..\\x', 'sub', SEPARATOR)).toBe(climbs);
+  });
+
+  it('refuses what parseGlob refuses before it reads an alternative, in its words', () => {
+    expect(refused('', 'sub')).toBe('the pattern is empty');
+    expect(refused(' ! ', 'sub')).toBe('the pattern is empty');
+    expect(refused('!!docs', 'sub')).toBe('a negated pattern is a list entry, not a glob; narrow the positive pattern');
+    expect(refused('+(a|b)', 'sub')).toBe(error('+(a|b)'));
+    expect(refused('{a,b', 'sub')).toBe('a "{" is never closed');
+    expect(refused('{a,b}'.repeat(9), 'sub')).toBe(`the braces expand to more than ${MAX_ALTERNATIVES} patterns`);
+  });
+
+  it('refuses a directory whose name a pattern would read as syntax', () => {
+    for (const directory of ['a*', 'a?', 'a[1]', '{a}', 'a\\b', '!a', ' a', 'x/a[1]']) {
+      expect(refused('docs', directory), directory).toBe(
+        `the directory "${directory}" cannot be named in a pattern: a "*", "?", "[", "{" or "\\" in it, or a "!" or a space it starts with, would be read as syntax`,
+      );
+    }
+    // What a pattern reads as a name is written as one.
+    expect(rebased('docs', 'x/!a')).toBe('x/!a/docs');
+    expect(rebased('docs', 'x/ a]')).toBe('x/ a]/docs');
+    expect(matches(rebased('docs', 'x/!a'), 'x/!a/docs')).toBe(true);
+    expect(matches(rebased('{a,b}', 'x,y}'), 'x,y}/a')).toBe(true);
+  });
+
+  it('refuses to write alternatives out when one would split its braces', () => {
+    const splits = (piece: string): string => `the braces cannot be rebased one alternative at a time: "${piece}" holds a "," or a "}"`;
+    expect(refused('{/docs,x}', 'a,b')).toBe(splits('a,b/x'));
+    expect(refused('{/docs,a\\,b}', 'sub')).toBe(splits('sub/a\\,b'));
+    expect(refused('{/docs,x}}', 'sub')).toBe(splits('/docs}'));
+  });
+
+  it('throws for a directory that is not one under the root', () => {
+    for (const directory of ['/sub', 'sub/', 'a//b', '.', 'a/./b', '..', 'a/..']) {
+      expect(() => rebaseGlob('docs', directory), directory).toThrow(`"${directory}" is not a directory under the root`);
+    }
   });
 });
 

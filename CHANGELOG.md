@@ -17,6 +17,14 @@ What the tools that copied 7e41240 - all four - see when they copy again.
   Upgrading: a test that pins `.//docs` as rooted changes; the tool's
   changelog says that `.//docs` now reads as `./docs`.
 
+### Added since 7e41240
+
+- `pattern`: `rebaseGlob(entry, directory, options)` rewrites a list entry
+  typed in a directory below the root to read from the root, each brace
+  alternative on its own: `{/docs,x}` typed in `sub` is `{/docs,sub/x}`, a
+  `!` stays in front, and a `..` that climbs above the root is refused
+  (ADR-0003).
+
 ### Changed since 56c7e54
 
 What the tools that copied 56c7e54 - all four - see when they copy again.
