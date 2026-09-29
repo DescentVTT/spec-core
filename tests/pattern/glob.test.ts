@@ -156,6 +156,9 @@ describe('the syntax every dialect shares', () => {
     ['/', 'the pattern names the root itself, not a path under it'],
     ['//', 'the pattern names the root itself, not a path under it'],
     ['./', 'the pattern names the root itself, not a path under it'],
+    // `./` with more slashes, and another `./` after them, is still `./`.
+    ['.//', 'the pattern names the root itself, not a path under it'],
+    ['.//./', 'the pattern names the root itself, not a path under it'],
   ])('refuses %j: %s', (pattern, reason) => {
     expect(error(pattern)).toBe(reason);
   });
@@ -194,6 +197,51 @@ describe('the syntax every dialect shares', () => {
         expect(error(pattern, options), `${options.dialect}: ${pattern}`).toBe('the pattern names no path');
       }
     }
+  });
+
+  it('reads the slashes after a leading `./` with it, as POSIX reads `.//docs`: relative, never rooted', () => {
+    // Rooted paths beside relative ones, and a name at the root and below
+    // it, so `/docs`, `docs` and a name at any depth answer differently.
+    const paths = ['docs', 'docs/a', 'x/docs', 'x/docs/a', '/docs', '/docs/a', 'x', 'y/x', '/x', 'a/docs'];
+    for (const options of [PATH, RIPGREP, GITIGNORE]) {
+      const answers = (pattern: string): boolean[] => paths.map((path) => matches(pattern, path, options));
+      for (const pattern of ['.//docs', './//docs', './/.//docs', '././/docs', './/./docs']) {
+        expect(answers(pattern), `${options.dialect}: ${pattern}`).toEqual(answers('./docs'));
+      }
+      // Inside braces as outside, and a slash the braces give after the
+      // pattern's `./` is one of those slashes, as `./{/docs,x}` is `.//docs`
+      // or `./x`.
+      expect(answers('{.//docs,x}'), options.dialect).toEqual(answers('{./docs,x}'));
+      expect(answers('./{/docs,x}'), options.dialect).toEqual(answers('{./docs,./x}'));
+      expect(answers('.//{/docs,x}'), options.dialect).toEqual(answers('{./docs,./x}'));
+      expect(answers('{.,a}//docs'), options.dialect).toEqual(answers('{./docs,a/docs}'));
+    }
+    // What that reading is in each dialect: the root's `docs` and what it
+    // holds, a name at any depth, every `docs` directory - and never the
+    // filesystem's `/docs`.
+    expect(matches('.//docs', 'docs/a')).toBe(true);
+    expect(matches('.//docs', '/docs')).toBe(false);
+    expect(matches('.//docs', 'x/docs', RIPGREP)).toBe(true);
+    expect(matches('.//docs', '/docs', RIPGREP)).toBe(false);
+    expect(matches('.//docs', 'x/docs/a', GITIGNORE)).toBe(true);
+    expect(matches('./{/docs,x}', 'docs')).toBe(true);
+    expect(matches('./{/docs,x}', '/docs')).toBe(false);
+    // A literal function is asked about the relative path, and the walk
+    // starts below the root, not at the filesystem's.
+    const asked: string[] = [];
+    const glob = compileGlob('.//docs', {
+      ...PATH,
+      literal: (path) => {
+        asked.push(path);
+        return 'directory';
+      },
+    });
+    expect(asked).toEqual(['docs']);
+    expect(glob.bases).toEqual(['docs']);
+    expect(compileGlob('.//docs/*.md', PATH).bases).toEqual(['docs']);
+    // A slash before the `./` still roots the pattern: `/.//docs` is `/docs`.
+    expect(matches('/.//docs', '/docs')).toBe(true);
+    expect(matches('/.//docs', 'docs')).toBe(false);
   });
 
   it('keeps an alternative that names a path, whatever dots and slashes it holds', () => {
@@ -248,7 +296,7 @@ describe('the syntax every dialect shares', () => {
         ['{/**/docs,x}', '/**/docs', 'x'],
         ['{a,/b}c', 'ac', '/bc'],
         // A leading `./` is dropped first, from the alternative as from a
-        // whole pattern, and a slash after it leads what is left.
+        // whole pattern, with the slashes after it.
         ['{.//docs,x}', './/docs', 'x'],
         ['{././/docs,x}', '././/docs', 'x'],
         ['./{/docs,x}', './/docs', './x'],

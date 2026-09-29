@@ -5,6 +5,18 @@ copies a module names the spec-core commit in its own changelog.
 
 ## Unreleased
 
+### Changed since 7e41240
+
+What the tools that copied 7e41240 - all four - see when they copy again.
+
+- `pattern`: a leading `./` goes with the slashes after it, as POSIX reads
+  them, so `.//docs` is `docs` in every dialect, inside braces too: it was
+  `/docs`, rooted at the filesystem's root in `path` and `ripgrep` and
+  anchored at the repository root in `gitignore`, and `./{/docs,x}` rooted
+  `/docs` the same way. `.//./` is refused as `./` is (ADR-0003).
+  Upgrading: a test that pins `.//docs` as rooted changes; the tool's
+  changelog says that `.//docs` now reads as `./docs`.
+
 ### Changed since 56c7e54
 
 What the tools that copied 56c7e54 - all four - see when they copy again.

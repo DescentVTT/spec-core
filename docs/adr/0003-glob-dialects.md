@@ -147,7 +147,21 @@ Also shared, found when the three engines were run beside this one
   first, from an alternative as from a whole pattern, so `{.//docs,x}` is
   `/docs` or `x`, as `.//docs` is `/docs`. An alternative that names no
   path is refused before its slash is read, as it was: `{/,a}` is
-  `the braces expand to "/", which names no path`.
+  `the braces expand to "/", which names no path`. *Amended 2026-09-30*: a
+  leading `./` goes with the slashes after it, as POSIX reads `.//docs` as
+  `./docs`, so `.//docs` is `docs` in every dialect, relative as `./docs`
+  is, and `{.//docs,x}` is `docs` or `x`. The run of slashes was left to
+  lead what the `./` left, and rooted it: `.//docs` was `/docs`, rooted at
+  the filesystem's root in `path` and `ripgrep`, which no relative path is
+  under, and anchored at the repository root in `gitignore`, where `./docs`
+  excludes every `docs`. A slash the braces give after the pattern's `./`
+  is one of those slashes, since braces expand first: `./{/docs,x}` is
+  `.//docs` or `./x` and roots neither, where it rooted `/docs`. A `/`
+  before the `./` still roots the pattern, `/.//docs` being `/docs`, as a
+  run of slashes alone still names the root. A `./` followed by nothing but
+  slashes and `./` is refused as `./` is,
+  `the pattern names the root itself, not a path under it`, where `.//./`
+  was refused as `/./` is, `the pattern names no path`.
 
 ## How the differences were found
 
