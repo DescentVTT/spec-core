@@ -509,10 +509,20 @@ export function isNull(scalar: YamlScalar): boolean {
   return !scalar.quoted && ['', '~', 'null', 'Null', 'NULL'].includes(scalar.text);
 }
 
-/** Renders a string as a scalar that reads back as the same string. */
+/**
+ * Renders a string as a scalar that reads back as the same string.
+ *
+ * Plain only as a YAML plain scalar that reads back as itself: a letter
+ * first, of any script, then letters, marks, digits, spaces and `._/+-` - so
+ * a status of `封存` or `已接受` is written as it is typed - with no space at
+ * the end, and none of `true`, `false`, `null`, `yes`, `no`, `on`, `off` or
+ * `~` in any case, which YAML 1.2 or 1.1 reads as a boolean or a null.
+ * Anything else is quoted: an indicator, `: ` or ` #`, a number, a space at
+ * either end, a full-width space or punctuation.
+ */
 export function renderScalar(value: string): string {
   const reserved = /^(?:true|false|null|yes|no|on|off|~)$/i.test(value);
-  const plain = /^[A-Za-z][A-Za-z0-9 ._/+-]*$/.test(value) && !value.endsWith(' ');
+  const plain = /^\p{L}[\p{L}\p{M}\p{N} ._/+-]*$/u.test(value) && !value.endsWith(' ');
   return plain && !reserved ? value : JSON.stringify(value);
 }
 

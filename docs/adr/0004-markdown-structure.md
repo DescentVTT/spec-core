@@ -65,6 +65,17 @@ with no front matter and say what went wrong. *Amended 2026-09-27*: the scan
 read the two alike, and spec-graph read the first line again to tell them
 apart.
 
+Front matter is written back one key at a time, every other line left as it
+was, and `renderScalar` writes a value plain only where a YAML plain scalar
+reads back as the same string: a letter first, then letters, marks, digits,
+spaces and `._/+-`, no space at the end, and none of the words YAML 1.2 or
+1.1 reads as a boolean or a null. Anything else is double-quoted.
+*Amended 2026-09-30*: a letter of any script counts, so a status of `封存`
+or `已接受` is written as it is typed. Only an ASCII letter did, and every
+other value was quoted: `封存` was written `"封存"`, which reads the same
+and is not what a person writing Chinese types. A full-width space or
+punctuation mark, and a digit or a mark first, are still quoted.
+
 A link's text is read again for images, which CommonMark renders there: a
 badge wrapped in a link, `[![build](badge.svg)](actions)`, has two
 destinations, and a tool that rewrites or checks relative paths needs both.

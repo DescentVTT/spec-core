@@ -16,6 +16,13 @@ What the tools that copied 7e41240 - all four - see when they copy again.
   `/docs` the same way. `.//./` is refused as `./` is (ADR-0003).
   Upgrading: a test that pins `.//docs` as rooted changes; the tool's
   changelog says that `.//docs` now reads as `./docs`.
+- `markdown`: `renderScalar` writes a value plain when it starts with a
+  letter of any script, so a status written back as `封存` is `封存`, no
+  longer `"封存"`. A value with `: ` or ` #`, a space at either end,
+  full-width punctuation, or a digit or a mark first is still quoted
+  (ADR-0004).
+  Upgrading: nothing to change; a test that pins the quoted form of such a
+  value changes.
 
 ### Added since 7e41240
 
