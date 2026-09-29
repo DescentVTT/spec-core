@@ -154,6 +154,7 @@ describe('the syntax every dialect shares', () => {
     ['src\\', '"\\" escapes glob syntax; separate directories with "/"'],
     ['.', 'the pattern names no path'],
     ['/', 'the pattern names the root itself, not a path under it'],
+    ['//', 'the pattern names the root itself, not a path under it'],
     ['./', 'the pattern names the root itself, not a path under it'],
   ])('refuses %j: %s', (pattern, reason) => {
     expect(error(pattern)).toBe(reason);
