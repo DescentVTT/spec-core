@@ -32,6 +32,8 @@
  *   `{/docs,lib}` is `/docs` or `lib`, the leading `/` rooting or anchoring
  *   that alternative as it would the pattern. One that names no path,
  *   `{./,lib}` or `{,lib}`, is refused, as `./` and the empty pattern are.
+ * - A leading `./` is the current directory, and goes with the slashes after
+ *   it, as POSIX reads them: `.//docs` is `docs`, and never `/docs`.
  * - Case is the caller's decision, stated every time. A result must not
  *   depend on the host it ran on.
  * - A malformed pattern is an error, never a literal. An unclosed `[` or `{`,
@@ -181,12 +183,13 @@ function build(source: string, options: GlobOptions): Glob | string {
     // before anything else is decided: `{/docs,x}` is `/docs` or `x`. Left to
     // `parseAlternative`, the slash would be an empty segment, dropped, and
     // `/docs` would read as `docs`. A slash after a segment, as in
-    // `a/{/b,c}`, starts no text, and is the empty segment of `a//b`.
+    // `a/{/b,c}`, starts no text, and is the empty segment of `a//b`; one
+    // after the pattern's `./` roots nothing either.
     const alone = unrooted(text);
     const parsed = parseAlternative(trailingSlash(alone.text, options.dialect), escapes);
     if (parsed === GLOBSTAR_IN_NAME) return `${GLOBSTAR_IN_NAME}: ${globstarAdvice(written)}`;
     if (typeof parsed === 'string') return parsed;
-    alternatives.push({ ...parsed, rooted: whole.rooted || alone.rooted });
+    alternatives.push({ ...parsed, rooted: whole.rooted || (alone.rooted && !whole.dotted) });
   }
 
   const builder = new Builder();
@@ -321,16 +324,22 @@ function classEnd(pattern: string, open: number, escapes: boolean): number {
 
 /**
  * A pattern, or a text its braces give, without the `./` and the slashes it
- * starts with, and whether a slash led it once the `./` was gone. What a
- * leading slash means is the dialect's: it roots a pattern at the
- * filesystem's root in `path` and `ripgrep`, and only anchors it at the
- * repository root in `gitignore`, as git reads one. `.//docs` is led by one,
- * as `/docs` is.
+ * starts with; whether a slash led it, which roots it; and whether a `./`
+ * did, which leaves every slash after it rootless. What a leading slash means
+ * is the dialect's: it roots a pattern at the filesystem's root in `path` and
+ * `ripgrep`, and only anchors it at the repository root in `gitignore`, as
+ * git reads one.
+ *
+ * The slashes after a `./` go with it, as POSIX reads `.//docs` as `./docs`:
+ * the current directory, then `docs`. Left behind, they would lead what is
+ * left and root it, and `.//docs` would be `/docs`. A slash the braces give
+ * after a pattern's `./` is one of them, so `./{/docs,x}`, which is
+ * `.//docs` or `./x`, roots neither.
  */
-function unrooted(text: string): { readonly text: string; readonly rooted: boolean } {
+function unrooted(text: string): { readonly text: string; readonly rooted: boolean; readonly dotted: boolean } {
   let rest = text;
-  while (rest.startsWith('./')) rest = rest.slice(2);
-  return { text: rest.replace(/^\/+/, ''), rooted: rest.startsWith('/') };
+  while (rest.startsWith('./')) rest = rest.slice(2).replace(/^\/+/, '');
+  return { text: rest.replace(/^\/+/, ''), rooted: rest.startsWith('/'), dotted: rest !== text };
 }
 
 /** Whether a pattern's text names no path: nothing in it but `/` and `.` segments. */
