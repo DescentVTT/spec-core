@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createLineIndex,
+  displayWidth,
   inRanges,
   lineEnding,
   lineStarts,
@@ -142,5 +143,101 @@ describe('terminators and marks', () => {
   it('splits lines so that joining them gives the text back', () => {
     expect(splitLines('a\r\nb\nc\rd\n')).toEqual(['a', 'b', 'c', 'd', '']);
     expect(splitLines('a\r\nb').join('\r\n')).toBe('a\r\nb');
+  });
+});
+
+describe('the width of a text in a terminal', () => {
+  // Invisible characters are written by code point.
+  const cp = (...points: number[]): string => String.fromCodePoint(...points);
+
+  it('counts an East Asian Wide or Fullwidth character as two columns, and the rest as one', () => {
+    expect(displayWidth('')).toBe(0);
+    expect(displayWidth('archived')).toBe(8);
+    expect(displayWidth('封存')).toBe(4);
+    expect(displayWidth('已接受')).toBe(6);
+    expect(displayWidth('ステータス')).toBe(10);
+    expect(displayWidth('보관됨')).toBe(6);
+    // Full-width forms are two, half-width ones one.
+    expect(displayWidth('ＡＤＲ')).toBe(6);
+    expect(displayWidth('ｽﾃｰﾀｽ')).toBe(5);
+    expect(displayWidth(cp(0x3000))).toBe(2);
+    // Mixed, as a table cell is.
+    expect(displayWidth('ADR-0003 已被取代')).toBe(17);
+    expect(displayWidth('狀態：已接受')).toBe(12);
+    expect(displayWidth('status: 封存 (archived)')).toBe(23);
+    // East Asian Ambiguous is one, as a terminal outside a legacy East Asian
+    // mode draws it.
+    expect(displayWidth('±α→①')).toBe(4);
+    // An unpaired surrogate is drawn as a replacement character.
+    expect(displayWidth(String.fromCharCode(0xd800))).toBe(1);
+  });
+
+  it("reads Unicode 16.0's widths, at the edges of the runs", () => {
+    const cases: readonly (readonly [number, number])[] = [
+      // The first run of the table, and the characters beside it.
+      [0x10ff, 1], [0x1100, 2], [0x115f, 2], [0x1160, 1],
+      [0x2328, 1], [0x2329, 2], [0x232a, 2], [0x232b, 1],
+      [0x3000, 2], [0x303e, 2], [0x303f, 1], [0x4e00, 2], [0x9fff, 2],
+      [0xabff, 1], [0xac00, 2], [0xd7a3, 2], [0xd7a4, 1],
+      [0xff00, 1], [0xff01, 2], [0xff60, 2], [0xff61, 1], [0xffe6, 2], [0xffe7, 1],
+      // Wide from Unicode 16.0: the trigrams and the Yijing hexagrams.
+      [0x2630, 2], [0x2637, 2], [0x4dc0, 2], [0x4dff, 2], [0x1d300, 2],
+      [0x1f600, 2],
+      // Unassigned code points of the ideograph planes are wide, as the
+      // data's defaults make them; the last run of the table ends there.
+      [0x2fffd, 2], [0x2fffe, 1], [0x30000, 2], [0x3fffd, 2], [0x3fffe, 1],
+      // Past every run.
+      [0xf0000, 1],
+    ];
+    for (const [point, width] of cases) expect(displayWidth(cp(point)), point.toString(16)).toBe(width);
+  });
+
+  it('counts a grapheme cluster once, by the first character in it that shows', () => {
+    // A combining mark and a variation selector add nothing to what they follow.
+    expect(displayWidth(cp(0x65, 0x301))).toBe(1);
+    expect(displayWidth('é')).toBe(1);
+    expect(displayWidth(cp(0x845b, 0xe0100))).toBe(2);
+    expect(displayWidth(cp(0x2764, 0xfe0e))).toBe(1);
+    // Nor does what comes before it: a prepended format character.
+    expect(displayWidth(cp(0x600, 0x31))).toBe(1);
+    expect(displayWidth(cp(0x600, 0x4e00))).toBe(2);
+    // A cluster of nothing that shows takes none: a mark with nothing to
+    // mark, an enclosing mark, the zero-width space and joiner, the
+    // byte-order mark, a bidirectional mark, and control characters.
+    for (const point of [0x301, 0x20dd, 0x200b, 0x200d, 0xfeff, 0x200e, 0x9, 0xa, 0x7, 0x7f, 0x85]) {
+      expect(displayWidth(cp(point)), point.toString(16)).toBe(0);
+    }
+    expect(displayWidth(cp(0x61, 0x200b, 0x62))).toBe(2);
+    expect(displayWidth(cp(0x61, 0x200d, 0x62))).toBe(2);
+    expect(displayWidth(cp(0x61, 0x9, 0x62, 0xd, 0xa))).toBe(2);
+    // A soft hyphen shows, as terminals draw one.
+    expect(displayWidth(cp(0x63, 0x6f, 0xad, 0x6f, 0x70))).toBe(5);
+  });
+
+  it("counts an emoji sequence as two, whatever its first character's own width", () => {
+    expect(displayWidth(cp(0x1f600))).toBe(2);
+    // An emoji and the presentation selector, a keycap among them.
+    expect(displayWidth(cp(0x2764))).toBe(1);
+    expect(displayWidth(cp(0x2764, 0xfe0f))).toBe(2);
+    expect(displayWidth(cp(0x31, 0xfe0f, 0x20e3))).toBe(2);
+    expect(displayWidth(cp(0x23, 0xfe0f, 0x20e3))).toBe(2);
+    // A modifier base and a skin tone.
+    expect(displayWidth(cp(0x261d))).toBe(1);
+    expect(displayWidth(cp(0x261d, 0x1f3fd))).toBe(2);
+    expect(displayWidth(cp(0x1f44d, 0x1f3fd))).toBe(2);
+    // Two regional indicators are a flag; one alone is a letter.
+    expect(displayWidth(cp(0x1f1f9, 0x1f1fc))).toBe(2);
+    expect(displayWidth(cp(0x1f1f9, 0x1f1fc, 0x1f1ef, 0x1f1f5))).toBe(4);
+    expect(displayWidth(cp(0x1f1e6))).toBe(1);
+    // Joined into one picture, from a wide emoji or a narrow one.
+    expect(displayWidth(cp(0x1f468, 0x200d, 0x1f469, 0x200d, 0x1f467))).toBe(2);
+    expect(displayWidth(cp(0x1f3f3, 0xfe0f, 0x200d, 0x1f308))).toBe(2);
+    // Only an emoji before the selector, and a modifier base before the skin
+    // tone, make one: what extends a letter adds nothing to it.
+    expect(displayWidth(cp(0x61, 0xfe0f))).toBe(1);
+    expect(displayWidth(cp(0x61, 0x1f3fd))).toBe(1);
+    expect(displayWidth(cp(0x61, 0x1f3fd, 0xfe0f))).toBe(1);
+    // In a table cell.
+    expect(displayWidth(`done ${cp(0x2705)} 已完成`)).toBe(14);
   });
 });

@@ -31,6 +31,11 @@ What the tools that copied 7e41240 - all four - see when they copy again.
   alternative on its own: `{/docs,x}` typed in `sub` is `{/docs,sub/x}`, a
   `!` stays in front, and a `..` that climbs above the root is refused
   (ADR-0003).
+- `text`: `displayWidth(text)` gives the columns a string takes in a
+  terminal, per grapheme cluster: an East Asian Wide or Fullwidth character
+  or an emoji sequence two, a mark, a joiner, a format or a control
+  character none, anything else one, with Unicode 16.0's widths. A tool
+  lines up a table's columns with it (ADR-0002).
 
 ### Changed since 56c7e54
 
