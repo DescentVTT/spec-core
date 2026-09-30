@@ -116,6 +116,10 @@ as an ordinary diff.
 | [0008](docs/adr/0008-toolchain.md) | The toolchain, and latest is not newest |
 | [0009](docs/adr/0009-versions-before-1-0.md) | Versions before 1.0 |
 
+## Security
+
+Report a vulnerability privately through the Security tab; [SECURITY.md](SECURITY.md) says how, and where fixes ship.
+
 ## License
 
 MIT
