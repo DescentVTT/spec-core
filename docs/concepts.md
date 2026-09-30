@@ -19,8 +19,10 @@ manifest or index says anything a brief does not
 A brief's status is one of four words, each configurable: `draft` (not yet
 approved), `active` (the round may run), `deferred` (put off until the event
 its `trigger` names) and `archived` (closed). How each tool reads status
-words in general is [ADR-0005](adr/0005-the-family-contract.md)'s lifecycle
-table.
+words in general is the lifecycle table of
+[ADR-0005](adr/0005-the-family-contract.md#documents-and-state). Those words
+are English, and no tool reads a translation: a document may be written in
+any language, and gives its status in English.
 
 ### Round
 

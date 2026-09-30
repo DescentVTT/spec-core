@@ -16,6 +16,11 @@ repository with no JavaScript of its own, such as a .NET solution, keeps a
 `package.json` with `"private": true` and the tools as its only
 `devDependencies`, commits the lockfile, and ignores `node_modules/`.
 
+The documents may be written in any language, with the status in English -
+`status: accepted` in front matter, or `Accepted` under a `## Status`
+heading - which is the one set of status words every tool reads
+([ADR-0005](adr/0005-the-family-contract.md#documents-and-state)).
+
 Run each tool from the project's install, `npx --no-install spec-guard`.
 Without `--no-install`, `npx` fetches a package from the registry when none is
 installed, and the unscoped name `spec-guard` belongs to a different package.

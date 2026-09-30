@@ -83,7 +83,9 @@ tool's CLAUDE.md can point.
   wins. A table with more columns, or one after the first `##`, is never read
   for a status: a legend of status words or a register of documents is not
   the document's own status. Each of the two names, in its CHANGELOG, the
-  release that first reads it.
+  release that first reads it. *Amended again 2026-09-30*: the keys are
+  `Status` and `State` only; `狀態` and `状态` are withdrawn with the Chinese
+  status words, below the lifecycle table.
 - State that exists only while work is in flight - an escalation waiting for a
   person, a sandbox in use - lives **outside the working tree**, under the git
   common directory (`.git/spec-harness/`), and only its outcome is written back
@@ -101,6 +103,9 @@ tool's CLAUDE.md can point.
   (the fix is in) are different: premises run on every build with
   `--ignore-status` so that a stale brief fails CI; goals run when the round
   closes. A brief says which is which (spec-harness ADRs).
+
+  *Withdrawn 2026-09-30 by the amendment after this one, and kept as the
+  record of what the tools read until then:*
 
   *Amended 2026-09-30*: **a status written in Chinese is read as the English
   word it translates**, and each tool then does with it what it does with that
@@ -141,6 +146,21 @@ tool's CLAUDE.md can point.
     ADR-0004), never guessed at.
 
   Each tool names, in its CHANGELOG, the release that first reads them.
+
+  *Amended again 2026-09-30*: **status words are English in every tool.** The
+  amendment above is withdrawn, its table and every rule under it: no tool
+  reads a Chinese status word, the `被` ... `取代` form, `狀態` or `状态` as a
+  status key, or a full-width colon after a status label. A document may be
+  written in any language and writes its status in English -
+  `status: superseded` in front matter, or `Superseded by ADR-0007` under a
+  `## Status` heading - which every tool reads. The maintainer chose one
+  language: a small team keeps one vocabulary up to date, and a heuristic in
+  a second language is where false positives come from. The two-column
+  table before the first `##` stays, with the keys `Status` and `State`. A
+  status in another language is then a word no tool knows, and each treats
+  it as it treats any such word: spec-guard keeps the document in force, so
+  no document goes dark by accident. Each tool names, in its CHANGELOG, the
+  release that stops reading Chinese.
 
 ### Git and the working tree
 
