@@ -19,8 +19,9 @@ export default {
   // never a run over everything.
   mutate: mutateFor(base.mutate, shard),
 
-  // A shard is not a score. The one holding regex.ts can sit under the gate
-  // while the sweep clears it, so the gate is applied once, by the merge.
+  // A shard is not a score. The ones holding automaton.ts and regex.ts read
+  // 90.7% and 91.5% while the sweep read 96.4%, so the gate is applied once,
+  // by the merge.
   thresholds: { ...base.thresholds, break: null },
 
   // The merge reads the JSON and writes the page for the whole sweep. The

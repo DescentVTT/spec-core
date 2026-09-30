@@ -29,6 +29,13 @@ Every module is checked against at least one thing it did not write:
 Then mutation testing, for the question the above cannot answer - does a test
 pin down each decision. The sweep covers all of `src/` against all of
 `tests/`; every test is a unit test, so there is one sweep, not two.
+*Amended 2026-09-30*: CI runs that sweep in six shards, each mutating its
+own files against every test, and a job after them merges the reports and
+applies the `break` once, to the merged score; a shard is not a score. It is
+still the gate on every pull request and every push to main, over every
+mutant, with the same `timeoutMS` and `break` and every test but the merge's
+own, which reach nothing under `src/`; `npm run test:mutation` still runs it
+in one process. The record below has the measurements.
 
 **Thresholds are measurements, never targets.** The first full sweep sets the
 `break` a little under what it measured; it moves up with the measurement and
@@ -297,3 +304,102 @@ above, costs a third of a nanosecond a step and hides under the allowance
 at these sizes, as it did before, when no check timed links at all.
 
 **The `break` stays 94.5.**
+
+### 2026-09-30: the sweep in shards
+
+The sweep is the gate on every change, and every change waited for it: the
+last twelve sweeps took 67 to 164 minutes, 145 at the median, and the same
+5,546 mutants took 97 minutes on the runner of 0eebd94's pull request and
+151 on main's of 7a1753c. spec-graph (its ADR-0019) and spec-guard (its
+ADR-0003) run their sweeps in shards and merge the reports back into one
+score. `scripts/mutation-shards.mjs` is that merge, with their tests.
+
+**What a shard must not change.** The merged sweep has to be the one a
+single run would have done. Every shard runs every test: `related` was
+already off, and Stryker runs the suite `npm test` runs less the merge's own
+tests, which reach nothing under `src/` (`vitest.mutation.config.ts`, held
+to `vitest.config.ts` by a test). The merge refuses a missing shard, a shard
+reported twice, a file mutated by two shards or by one it does not belong
+to, a listed file its shard did not report, a shard that ran with patterns
+other than its own, and shards that ran different tests, and it matches
+tests by file and name, since Stryker numbers them afresh in every run. Each
+shard runs with the `break` off, because two of them read about 91 while the
+sweep clears 94.5; the merge scores the merged report with
+`mutation-testing-metrics`, the library Stryker's gate uses, and fails an
+unrounded score under 94.5 as that gate does. An unset or unknown shard is
+an error when the shard configuration loads, never a run over everything,
+and a file no shard lists is mutated by the last. No test here writes to
+disk, so shards running side by side cannot race, as spec-graph's once did.
+
+Before any sharded sweep ran, 7a1753c's report was cut into shards the way
+Stryker writes them, ids renumbered and tests reordered, and put back by
+the merge command: all 5,546 verdicts came back with their covering and
+killing tests by name, 97.17% as that sweep printed, and the page decodes
+to the merged report. Seventeen defects put one at a time into the script,
+the shard configuration, the mutation run's vitest configuration and the
+workflow each failed `tests/mutation-shards.test.ts`.
+
+**Where the minutes went.** Stryker tests mutants file by file in a fixed
+order, and its progress reporter stamps a count every ten seconds, so
+`scripts/mutation-timeline.mjs` reads each file's minutes off a log; the
+timeouts it counts in each file's stretch match the report's within three.
+In 7a1753c's sweep `links.ts` took 27.8 minutes, `regex.ts` 19.6,
+`syntax.ts` 19.3, `scan.ts` 18.9, `lines.ts` 12.5, `glob.ts` 10.2 and the
+other ten 41.1. The first sharded sweep split them eight ways on those
+minutes, and every shard finished in 2 to 8: 26 minutes of mutant testing
+between them. Stryker instruments every file it mutates, and instrumented
+code slows every test that runs it. Over all sixteen files the suite took
+69 to 90 seconds; in a shard, which instruments only its own files, 4 to 33.
+Most of a file's minutes in the single run were the other fifteen files'
+instrumentation, and two fifths of 7a1753c's were a hundred static mutants
+that timed out, each on a clock set by the whole suite.
+
+**Six shards.** A file cannot be split, since a line range loses the
+mutants that cross it (spec-graph's ADR-0019), so no shard finishes before
+`links.ts`, which took 5.1 to 7.7 minutes on its own. A file is slower
+beside files its tests run: in five shards, `regex.ts` and `tables.ts` took
+twice what they took apart, beside `charset.ts` and `syntax.ts`, and that
+shard and one other ran past `links.ts`. A pattern file's tests run no
+markdown or text file, and theirs run no pattern file, so each pattern file
+has a shard beside one markdown or text file, and the last takes every file
+not listed, a file added later among them:
+
+| Shard | Files | Minutes |
+| --- | --- | ---: |
+| 1 | `links.ts` | 7.7 |
+| 2 | `automaton.ts`, `lines.ts` | 6.2 |
+| 3 | `glob.ts`, `syntax.ts` | 4.5 |
+| 4 | `charset.ts`, `scan.ts` | 5.6 |
+| 5 | `regex.ts`, `tables.ts` | 3.5 |
+| 6 | the rest: `frontmatter.ts`, `lists.ts`, `headings.ts`, `layout.ts`, `width.ts`, `posix.ts`, `mcp.ts`, and `types.ts`, which has no mutants and so cannot be listed | 4.8 |
+
+Eight shards waited on `links.ts` as six do, from two more jobs, and CI's
+ten other jobs already take half the twenty that GitHub runs at once on a
+free plan.
+
+**The sweeps**, each of 7a1753c's code and tests, dispatched on the branch
+that brought the shards, and timed from the first shard starting to the
+merged score:
+
+| Run | Shards | Score | Mutants | Killed | Timed out | Survived | No coverage | Took |
+| --- | ---: | --- | --- | --- | --- | --- | --- | --- |
+| 36675091907 | 8 | 96.23% | 5,546 | 5,113 | 224 | 202 | 7 | 8m43s |
+| 36677574459 | 5 | 96.25% | 5,546 | 5,106 | 232 | 201 | 7 | 9m15s |
+| 36679639631 | 6 | 96.38% | 5,546 | 5,108 | 237 | 194 | 7 | 9m13s |
+
+0eebd94 and 7a1753c hold the same code, and their single runs read 96.54%
+and 97.17%. Mutant by mutant, nothing moved between those runs and the
+sharded ones but mutants that had timed out in one of them, and every
+survivor of 7a1753c's run survived every sharded sweep. Against 0eebd94's
+run, 14 to 17 mutants that had timed out survived each sharded sweep, 20 in
+all, while one of its survivors timed out in the second and five in the
+third. The 20 are loop bounds one step past an end, clamps, shortcuts and
+values never read, each already read as equivalent and commented at the
+code, which the single runs had only been too slow to finish. The same
+move, 35 mutants, separates the two single runs of that code, so a shard
+reads as a faster runner does, and it is one: its suite runs in a third to
+a twentieth of the time.
+
+**The `break` stays 94.5.** The sharded sweeps read 96.23 to 96.38%, under
+0eebd94's single run by the equivalent mutants they finish, and clear the
+gate by 1.7 points or more.

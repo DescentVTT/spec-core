@@ -5,11 +5,16 @@ npm install
 npm run lint            # tsc --noEmit
 npm test                # vitest
 npm run build
-npm run test:mutation   # stryker
+npm run test:mutation   # stryker, the whole sweep in one process
 ```
 
 Node 22 or later. Vitest reads `src/` directly; there is no build step for the
 tests.
+
+CI runs the mutation sweep on every pull request and every push to main, in
+shards that each mutate their own files against every test, and fails the
+build when the merged score is under the `break` in `stryker.config.mjs`
+(ADR-0007).
 
 ## Layout
 
@@ -19,6 +24,8 @@ tests.
 | `modules.json` | Which modules each module may import. |
 | `tests/` | Unit, oracle, enumeration and differential tests; `boundaries.test.ts` holds the rules above. |
 | `scripts/vendor.mjs` | Copies modules into a tool and checks a tool's copy. |
+| `scripts/mutation-shards.mjs`, `stryker.shard.config.mjs` | Split CI's mutation sweep into shards, and merge their reports into one score under the gate. |
+| `scripts/mutation-timeline.mjs` | Reads the minutes each file took off a sweep's log, to balance the shards. |
 | `docs/adr/` | The decisions, including the family's contract. |
 | `docs/` | The family's shared documentation: adopting the tools, their concepts, a tutorial. |
 
