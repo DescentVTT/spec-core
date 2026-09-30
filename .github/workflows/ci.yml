@@ -74,7 +74,7 @@ jobs:
       fail-fast: false
       matrix:
         # One entry per shard in scripts/mutation-shards.mjs; a test checks.
-        shard: [1, 2, 3, 4, 5]
+        shard: [1, 2, 3, 4, 5, 6]
     env:
       MUTATION_SHARD: ${{ matrix.shard }}
     steps:
