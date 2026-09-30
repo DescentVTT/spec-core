@@ -7,12 +7,20 @@
  * module, which is why the gate sits higher than any single tool's
  * (docs/adr/0007-verification.md).
  *
+ * `npm run test:mutation` runs the sweep in one process with this file. CI
+ * runs the same sweep in shards, each with stryker.shard.config.mjs, and
+ * applies these thresholds to the merged report.
+ *
  * @type {import('@stryker-mutator/api/core').PartialStrykerOptions}
  */
 export default {
   packageManager: 'npm',
   testRunner: 'vitest',
-  vitest: { configFile: 'vitest.config.ts', related: false },
+
+  // CI runs the sweep in shards (scripts/mutation-shards.mjs), and the merge
+  // takes them as one sweep only if each ran every test: with `related` on,
+  // which tests run would depend on the files a shard holds.
+  vitest: { configFile: 'vitest.mutation.config.ts', related: false },
   coverageAnalysis: 'perTest',
   mutate: ['src/**/*.ts', '!src/**/index.ts'],
 
