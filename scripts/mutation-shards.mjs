@@ -33,29 +33,32 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { minimatch } from 'minimatch';
 import { calculateMutationTestMetrics } from 'mutation-testing-metrics';
 
-// Minutes each file took in the first sharded sweep, of d6febb5 (run
-// 36675091907), eight shards each holding one to five files, read off the
+// Minutes each file took in the first two sharded sweeps, of the same code in
+// eight shards and then five (runs 36675091907 and 36677574459), read off the
 // shards' logs with scripts/mutation-timeline.mjs:
 //
-//   links 7.4   glob 3.1   automaton 2.8   scan 2.7   lines 2.4   regex 1.6
-//   syntax 1.3   charset 0.9   tables 0.8   frontmatter 0.7   mcp 0.6
-//   headings 0.5   posix 0.5   width 0.3   lists 0.2   layout 0.1
+//   links 5.1-7.4   scan 2.7-4.6   regex 1.6-3.5   automaton 2.8-3.3
+//   glob 3.0-3.1   lines 2.4-2.9   tables 0.8-2.0   syntax 1.3-1.4
+//   frontmatter 0.7-1.3   charset 0.9-1.3   lists 0.2-0.7   mcp 0.3-0.6
+//   posix 0.5   headings 0.4-0.5   width 0.3   layout 0.1
 //
-// 26 minutes in all, where one run took 96 to 149 over the same mutants.
-// Stryker instruments every file it mutates, and the instrumented code slows
-// every test that runs it: over all sixteen files the suite took 69 to 90
-// seconds, in a shard 4 to 27. A shard that holds more files is slower for
-// each of them, unless their tests do not overlap, as a pattern file's and a
-// markdown file's do not.
+// About 30 minutes in all, where one run took 96 to 149 over the same
+// mutants. Stryker instruments every file it mutates, and the instrumented
+// code slows every test that runs it: over all sixteen files the suite took 69
+// to 90 seconds, in a shard 4 to 33. So a file is slower beside files its
+// tests run, as regex.ts and tables.ts were beside charset.ts and syntax.ts,
+// and every static mutant runs the whole suite, which each file in the shard
+// slows. A pattern file's tests run no markdown or text file, and theirs run
+// no pattern file.
 //
-// A file cannot be split, so no shard takes less time than links.ts. Three
-// listed shards bring the rest to about five minutes each, a pattern file
-// beside a markdown or text one, so links.ts stays the one the sweep waits for
-// on any runner; more shards would add jobs, not shorten the sweep. The last
-// mutates everything else the base configuration mutates, so a file added
-// later is still mutated without anyone remembering to list it here. The price
-// is that new files all land in one shard, so it holds only small files and
-// keeps room for them.
+// A file cannot be split, so no shard takes less time than links.ts. Four
+// listed shards hold a pattern file each, beside a markdown or text file, and
+// keep the rest near or under links.ts; five shards put two pattern files and
+// two markdown files together and ran two of them past it, and more than six
+// would add jobs, not shorten the sweep. The last mutates everything else the
+// base configuration mutates, so a file added later is still mutated without
+// anyone remembering to list it here. The price is that new files all land in
+// one shard, so it holds only small files and keeps room for them.
 //
 // A file listed here must have mutants: the merge refuses a listed file its
 // shard did not report, and types.ts has none, so it stays in the last shard.
@@ -63,11 +66,12 @@ import { calculateMutationTestMetrics } from 'mutation-testing-metrics';
 // move files or add a shard, and add it to the workflow's matrix, which a test
 // checks.
 export const ASSIGNED = [
-  ['src/markdown/links.ts'], // 7.4
-  ['src/pattern/automaton.ts', 'src/text/lines.ts'], // 5.2
-  ['src/pattern/glob.ts', 'src/markdown/scan.ts'], // 5.8
-  ['src/pattern/regex.ts', 'src/pattern/charset.ts', 'src/markdown/syntax.ts', 'src/markdown/tables.ts'], // 4.6
-]; // and the rest: 2.9
+  ['src/markdown/links.ts'], // 5.1-7.4
+  ['src/pattern/automaton.ts', 'src/text/lines.ts'], // 5.2-6.2
+  ['src/pattern/glob.ts', 'src/markdown/syntax.ts'], // 4.3-4.5
+  ['src/pattern/charset.ts', 'src/markdown/scan.ts'], // 3.6-5.9
+  ['src/pattern/regex.ts', 'src/markdown/tables.ts'], // 2.4-5.5
+]; // and the rest: 2.5-4.0
 
 export const SHARD_COUNT = ASSIGNED.length + 1;
 
