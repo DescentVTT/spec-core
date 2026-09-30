@@ -57,26 +57,24 @@ jobs:
         run: npm run test:coverage
 
   # Every module here is copied into four tools; the sweep is the gate on
-  # every change, not a weekly report. One runner took 97 to 151 minutes for
+  # every change, not a weekly report. One runner took 67 to 164 minutes for
   # it, so it runs in shards, each mutating its own files against every test
   # (scripts/mutation-shards.mjs), and the job after them merges the reports
   # and applies the gate once, to the merged score (ADR-0007).
   mutation-shard:
     name: mutation (shard ${{ matrix.shard }} of ${{ strategy.job-total }})
     runs-on: ubuntu-latest
-    # Headroom for a bad runner, not a budget: the slowest runner of the
-    # recent sweeps spent 28 minutes on links.ts, the largest file, and a
-    # shard cannot finish sooner than its largest file. A shard that keeps
-    # passing 30 means the table in scripts/mutation-shards.mjs needs
-    # re-measuring, not this number raising.
-    timeout-minutes: 60
+    # Headroom for a bad runner, not a budget: the shards took 2 to 9 minutes.
+    # A shard that keeps passing 15 means the table in
+    # scripts/mutation-shards.mjs needs re-measuring, not this number raising.
+    timeout-minutes: 30
     strategy:
       # One broken shard should not hide what the others found. The merge
       # refuses to score a sweep with a shard missing either way.
       fail-fast: false
       matrix:
         # One entry per shard in scripts/mutation-shards.mjs; a test checks.
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shard: [1, 2, 3, 4, 5]
     env:
       MUTATION_SHARD: ${{ matrix.shard }}
     steps:

@@ -3,9 +3,8 @@
  * one report with one score.
  *
  * The sweep is the gate on every pull request and every push to main, and one
- * runner took 97 to 151 minutes for the same 5,546 mutants (ADR-0007). The
- * record of 2026-09-30 in ADR-0007 has the measurements behind the split and
- * behind the table below.
+ * runner took 67 to 164 minutes for it (ADR-0007). The record of 2026-09-30 in
+ * ADR-0007 has the measurements behind the split and behind the table below.
  *
  * Each shard runs Stryker with stryker.shard.config.mjs, which takes `mutate`
  * from mutateFor() and switches the break threshold off, because a shard is not
@@ -34,27 +33,29 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { minimatch } from 'minimatch';
 import { calculateMutationTestMetrics } from 'mutation-testing-metrics';
 
-// Minutes each file took in main's sweep of 7a1753c (run 36651919955), on one
-// runner, read off its log with scripts/mutation-timeline.mjs:
+// Minutes each file took in the first sharded sweep, of d6febb5 (run
+// 36675091907), eight shards each holding one to five files, read off the
+// shards' logs with scripts/mutation-timeline.mjs:
 //
-//   links 27.8   regex 19.6   syntax 19.3   scan 18.9   lines 12.5
-//   glob 10.2   tables 7.2   width 6.7   lists 5.9   automaton 5.4
-//   frontmatter 5.0   posix 5.0   charset 2.8   mcp 1.6   headings 1.0
-//   layout 0.5
+//   links 7.4   glob 3.1   automaton 2.8   scan 2.7   lines 2.4   regex 1.6
+//   syntax 1.3   charset 0.9   tables 0.8   frontmatter 0.7   mcp 0.6
+//   headings 0.5   posix 0.5   width 0.3   lists 0.2   layout 0.1
 //
-// 149 minutes in all, on the slowest runner of the recent sweeps: the pull
-// request's sweep of 0eebd94, with the same mutants, took 96. Two fifths of
-// the 149 are a hundred static mutants that timed out, and a static mutant's
-// clock is the whole suite's, so a runner or a shard whose suite runs faster
-// spends less on each.
+// 26 minutes in all, where one run took 96 to 149 over the same mutants.
+// Stryker instruments every file it mutates, and the instrumented code slows
+// every test that runs it: over all sixteen files the suite took 69 to 90
+// seconds, in a shard 4 to 27. A shard that holds more files is slower for
+// each of them, unless their tests do not overlap, as a pattern file's and a
+// markdown file's do not.
 //
-// A file cannot be split, so no shard takes less time than links.ts. Seven
-// listed shards keep the rest near two thirds of it, so a slow runner under
-// any of them does not make it the one the sweep waits for. The last mutates
-// everything else the base configuration mutates, so a file added later is
-// still mutated without anyone remembering to list it here. The price is that
-// new files all land in one shard, so it holds only small files and keeps room
-// for them.
+// A file cannot be split, so no shard takes less time than links.ts. Three
+// listed shards bring the rest to about five minutes each, a pattern file
+// beside a markdown or text one, so links.ts stays the one the sweep waits for
+// on any runner; more shards would add jobs, not shorten the sweep. The last
+// mutates everything else the base configuration mutates, so a file added
+// later is still mutated without anyone remembering to list it here. The price
+// is that new files all land in one shard, so it holds only small files and
+// keeps room for them.
 //
 // A file listed here must have mutants: the merge refuses a listed file its
 // shard did not report, and types.ts has none, so it stays in the last shard.
@@ -62,14 +63,11 @@ import { calculateMutationTestMetrics } from 'mutation-testing-metrics';
 // move files or add a shard, and add it to the workflow's matrix, which a test
 // checks.
 export const ASSIGNED = [
-  ['src/markdown/links.ts'], // 27.8
-  ['src/pattern/regex.ts'], // 19.6
-  ['src/markdown/syntax.ts'], // 19.3
-  ['src/markdown/scan.ts'], // 18.9
-  ['src/text/lines.ts', 'src/pattern/automaton.ts'], // 17.9
-  ['src/pattern/glob.ts', 'src/markdown/tables.ts'], // 17.4
-  ['src/text/width.ts', 'src/markdown/lists.ts', 'src/markdown/frontmatter.ts'], // 17.6
-]; // and the rest: 10.9
+  ['src/markdown/links.ts'], // 7.4
+  ['src/pattern/automaton.ts', 'src/text/lines.ts'], // 5.2
+  ['src/pattern/glob.ts', 'src/markdown/scan.ts'], // 5.8
+  ['src/pattern/regex.ts', 'src/pattern/charset.ts', 'src/markdown/syntax.ts', 'src/markdown/tables.ts'], // 4.6
+]; // and the rest: 2.9
 
 export const SHARD_COUNT = ASSIGNED.length + 1;
 
