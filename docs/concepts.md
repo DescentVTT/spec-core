@@ -26,8 +26,9 @@ table.
 
 The work one brief describes, from the person's approval to the archive,
 done by an agent on a branch named after the brief (`brief/012-rotate-tokens`
-works on brief 012) and measured against the [base](#base). The branch, the
-`--brief` flag or `SPEC_BRIEF` names the brief; nothing guesses it
+works on brief 012) and measured against the [base](#base). The branch (in
+CI, the one the forge's variables name), the `--brief` flag or `SPEC_BRIEF`
+names the brief; nothing guesses it
 ([spec-harness](https://github.com/DescentVTT/spec-harness#a-round),
 [ADR-0004](https://github.com/DescentVTT/spec-harness/blob/main/docs/adr/0004-the-active-brief-is-named-not-guessed.md)).
 
