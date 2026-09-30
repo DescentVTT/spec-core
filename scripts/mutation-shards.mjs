@@ -33,16 +33,16 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { minimatch } from 'minimatch';
 import { calculateMutationTestMetrics } from 'mutation-testing-metrics';
 
-// Minutes each file took in the first two sharded sweeps, of the same code in
-// eight shards and then five (runs 36675091907 and 36677574459), read off the
-// shards' logs with scripts/mutation-timeline.mjs:
+// Minutes each file took in the first three sharded sweeps, of the same code
+// in eight shards, five and six (runs 36675091907, 36677574459 and
+// 36679639631), read off the shards' logs with scripts/mutation-timeline.mjs:
 //
-//   links 5.1-7.4   scan 2.7-4.6   regex 1.6-3.5   automaton 2.8-3.3
-//   glob 3.0-3.1   lines 2.4-2.9   tables 0.8-2.0   syntax 1.3-1.4
-//   frontmatter 0.7-1.3   charset 0.9-1.3   lists 0.2-0.7   mcp 0.3-0.6
-//   posix 0.5   headings 0.4-0.5   width 0.3   layout 0.1
+//   links 5.1-7.7   scan 2.7-4.8   regex 1.6-3.5   automaton 2.8-3.3
+//   glob 3.0-3.2   lines 2.4-2.9   tables 0.8-2.0   frontmatter 0.7-1.6
+//   syntax 1.3-1.4   charset 0.8-1.3   lists 0.2-1.1   mcp 0.3-0.6
+//   posix 0.5-0.6   headings 0.4-0.5   width 0.3-0.4   layout 0.1
 //
-// About 30 minutes in all, where one run took 96 to 149 over the same
+// 26 to 32 minutes in all, where one run took 96 to 149 over the same
 // mutants. Stryker instruments every file it mutates, and the instrumented
 // code slows every test that runs it: over all sixteen files the suite took 69
 // to 90 seconds, in a shard 4 to 33. So a file is slower beside files its
@@ -53,25 +53,25 @@ import { calculateMutationTestMetrics } from 'mutation-testing-metrics';
 //
 // A file cannot be split, so no shard takes less time than links.ts. Four
 // listed shards hold a pattern file each, beside a markdown or text file, and
-// keep the rest near or under links.ts; five shards put two pattern files and
-// two markdown files together and ran two of them past it, and more than six
-// would add jobs, not shorten the sweep. The last mutates everything else the
-// base configuration mutates, so a file added later is still mutated without
-// anyone remembering to list it here. The price is that new files all land in
-// one shard, so it holds only small files and keeps room for them.
+// keep the rest under links.ts; five shards put two pattern files and two
+// markdown files together and ran two of them past it, and eight waited on
+// links.ts as six do. The last mutates everything else the base configuration
+// mutates, so a file added later is still mutated without anyone remembering
+// to list it here. The price is that new files all land in one shard, so it
+// holds only small files and keeps room for them.
 //
 // A file listed here must have mutants: the merge refuses a listed file its
 // shard did not report, and types.ts has none, so it stays in the last shard.
 // When a shard passes the others by more than runner variance, re-measure and
 // move files or add a shard, and add it to the workflow's matrix, which a test
-// checks.
+// checks. Minutes in six shards:
 export const ASSIGNED = [
-  ['src/markdown/links.ts'], // 5.1-7.4
-  ['src/pattern/automaton.ts', 'src/text/lines.ts'], // 5.2-6.2
-  ['src/pattern/glob.ts', 'src/markdown/syntax.ts'], // 4.3-4.5
-  ['src/pattern/charset.ts', 'src/markdown/scan.ts'], // 3.6-5.9
-  ['src/pattern/regex.ts', 'src/markdown/tables.ts'], // 2.4-5.5
-]; // and the rest: 2.5-4.0
+  ['src/markdown/links.ts'], // 7.7
+  ['src/pattern/automaton.ts', 'src/text/lines.ts'], // 6.2
+  ['src/pattern/glob.ts', 'src/markdown/syntax.ts'], // 4.5
+  ['src/pattern/charset.ts', 'src/markdown/scan.ts'], // 5.6
+  ['src/pattern/regex.ts', 'src/markdown/tables.ts'], // 3.5
+]; // and the rest: 4.8
 
 export const SHARD_COUNT = ASSIGNED.length + 1;
 

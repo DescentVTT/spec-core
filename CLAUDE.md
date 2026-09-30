@@ -33,12 +33,19 @@ All of these pass before anything is called done.
 npm run lint            # tsc --noEmit
 npm test                # vitest: unit, oracle, enumeration, differential
 npm run build
-npm run test:mutation   # stryker over all of src/
+npm run test:mutation   # stryker over all of src/, in one process
 ```
 
 The mutation `break` and the coverage floors sit below the last measurement
 and move up with it, never down to let a change pass
 ([ADR-0007](docs/adr/0007-verification.md)).
+
+CI runs the same sweep in six shards on every pull request and every push
+to main, and applies the `break` once, to the merged report
+(`scripts/mutation-shards.mjs`); a shard is not a score. A file added under
+`src/` lands in the last shard. When a shard passes the others by more than
+runner variance, re-measure with `scripts/mutation-timeline.mjs` and move
+files in the table there.
 
 ## Changing a module
 
