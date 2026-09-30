@@ -76,16 +76,17 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: read
-  security-events: write # the SARIF upload
-
 jobs:
   specs:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # the SARIF upload
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: '24'
           cache: npm
@@ -100,12 +101,15 @@ jobs:
       - if: ${{ !cancelled() }}
         run: npx --no-install spec-graph check --format sarif > spec-graph.sarif
       - if: ${{ !cancelled() }}
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
         with:
           sarif_file: spec-graph.sarif
           category: spec-graph
 ```
 
+- The actions are pinned to commits, with the version beside each, because a
+  tag can be moved and a commit cannot; Dependabot's `github-actions` updates
+  keep pins like these current.
 - A step stops the job when it fails; `if: ${{ !cancelled() }}` runs every
   check once whatever failed before it, and the job still fails if any did.
 - `--format github` writes workflow commands, which annotate the pull request
@@ -113,9 +117,9 @@ jobs:
   to code scanning through `upload-sarif@v4` (v3 is deprecated in December
   2026). Code scanning takes an upload in a public repository, and in a
   private one where GitHub Code Security is enabled; a private repository's
-  workflow also needs `actions: read`. Without code scanning, write
+  job also needs `actions: read`. Without code scanning, write
   `npx --no-install spec-graph check --format markdown >> "$GITHUB_STEP_SUMMARY"`
-  and drop the upload.
+  and drop the upload and `security-events: write` with it.
 - Node 24 is the Active LTS until 20 October 2026; Node 26 becomes the Active
   LTS on 28 October 2026.
 
@@ -217,9 +221,9 @@ GitHub, a step after `npm ci` in the job above:
           npx --no-install spec-guard "$RUNNER_TEMP/base/docs/adr/**/*.md"
 ```
 
-The fetch uses the credentials `actions/checkout` leaves behind; with
-`persist-credentials: false` in a private repository, check out with
-`fetch-depth: 0` instead and add the worktree from `"origin/$GITHUB_BASE_REF"`.
+The job's checkout keeps no credentials, and a public repository's fetch
+needs none. In a private repository, check out with `fetch-depth: 0` instead
+and add the worktree from `"origin/$GITHUB_BASE_REF"`.
 
 GitLab, a job of its own in merge request pipelines:
 
