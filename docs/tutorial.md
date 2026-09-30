@@ -5,8 +5,8 @@ C# tree, one defect, and one round of agent work to fix it, from the brief to
 the archive. Nothing needs to build; the tools read the text.
 
 Every output below comes from running these steps against the published
-packages, spec-brief 0.2.7, spec-graph 0.9.10, spec-guard 0.16.0 and
-spec-harness 0.6.0, trimmed where a line says `…`. The words in italics are
+packages, spec-brief 0.3.0, spec-graph 0.10.0, spec-guard 0.17.0 and
+spec-harness 0.7.0, trimmed where a line says `…`. The words in italics are
 defined in [concepts](concepts.md).
 
 ## 1. The repository
@@ -87,18 +87,21 @@ create  .claude/settings.json
         the guard hooks, run with node from the project's install: …
 create  .mcp.json
         the spec-harness MCP server, run with node from the project's install: …
+advise  .git/hooks/pre-commit
+        no pre-commit hook runs spec-harness: one refuses a commit that changes what the active brief protects, for any agent or none, a shell's writes included; run spec-harness init --git-hook --write to add it
 advise  .github/allowed_signers
-        rulings count only when signed by a key listed here on the base branch: one line per person, <email> namespaces="git" <public key>; …
+        rulings count only when signed by a key listed here on the base branch: one line per person, <email> namespaces="git" <public key>. …
 
 Nothing was changed. Run again with --write to apply the plan.
 $ npx spec-harness init --write
 ```
 
-The last line is advice: `init` does not choose who may sign *rulings*. Pat,
-the person who approves the work, gets a signing key and a line in the
-allowed signers file. This key is a throwaway for the tutorial, kept outside
-the repository; for real rulings use a FIDO2 key (`-t ed25519-sk`), whose
-signature needs a touch no agent can supply.
+The last two lines are advice. The git hook is written only with
+`--git-hook`, and this tutorial goes without it. Nor does `init` choose who
+may sign *rulings*: Pat, the person who approves the work, gets a signing key
+and a line in the allowed signers file. This key is a throwaway for the
+tutorial, kept outside the repository; for real rulings use a FIDO2 key
+(`-t ed25519-sk`), whose signature needs a touch no agent can supply.
 
 ```console
 $ ssh-keygen -t ed25519 -N "" -C person@example.test -f ~/.ssh/ledger-person
@@ -111,15 +114,22 @@ $ npx spec-harness doctor
 root    …/ledger
 branch  main
 brief   (none named)
-base    main (.spec-harness.json), merge base 0626372cfd2e
+base    main (.spec-harness.json), merge base 13a2b7b59d70
 signers .github/allowed_signers is on main
+        note: signers whose key is not a FIDO2 key: person@example.test (ssh-ed25519, line 1). …
 plugin  spec-brief loads spec-harness's plugin (.spec-brief.json): its archive accepts a protected file a signed ruling allows
 claude  init's entries: the guard hooks in .claude/settings.json, the server in .mcp.json
+        Claude Code 2.1.235 runs the hooks, which need 2.1.139 or later
+git     no pre-commit hook runs spec-harness (.git/hooks/pre-commit): …
 
-found     spec-brief  … (0.2.7)
-found     spec-graph  … (0.9.10)
-found     spec-guard  … (0.16.0)
+found     spec-brief  … (0.3.0)
+found     spec-graph  … (0.10.0)
+found     spec-guard  … (0.17.0)
 ```
+
+The note is about the throwaway key, and the `git` line about the hook this
+tutorial goes without; neither fails `doctor`. A Claude Code older than
+2.1.139 does, since it runs every write unguarded.
 
 ## 3. Hold the code to its ADRs
 
@@ -160,7 +170,7 @@ itself, in memory, so a rule that cannot fail is found before it is trusted:
 $ npx spec-guard prove
 spec-guard prove 2 specs · 2 rules
 
-2 seen to fail · 24ms
+2 seen to fail · 20ms
 ✔ every rule in force was seen to fail
 ```
 
@@ -173,7 +183,7 @@ is constrained by ADR-0001, which spec-graph reads as `assumes`:
 $ npx spec-graph check
 spec-graph 2 documents - 0 items - 1 relation - 0 open
 
-20.87ms
+18.85ms
 ok the specification graph is consistent
 ```
 
@@ -188,7 +198,7 @@ x docs/adr/0002-money-is-decimal.md:11:12  stale-premise
     | docs/adr/0001-dependencies-point-inward.md:2:9  ADR-0001 is retired ("superseded")
     > re-check this dependency: the constraint it assumes may have been lifted when ADR-0001 was retired
 
-1 error - 21.81ms
+1 error - 19.29ms
 x the specification graph is inconsistent
 ```
 
@@ -219,7 +229,7 @@ Written, it reads:
 ```markdown
 ---
 status: draft
-date: 2026-09-29
+date: 2026-09-30
 type: defect
 wave: 1
 affectedFiles: [src/Ledger.Application/Interest.cs]
@@ -289,9 +299,9 @@ why each brief moves:
 ```console
 $ npx spec-brief schedule --write
 wave 1 · 1 brief
-  001  001 — Compute interest in decimal
+  001  Compute interest in decimal
 wave 2 · 1 brief
-  002  002 — Record every transfer        moves from wave 1
+  002  Record every transfer        moves from wave 1
          wave 1 does not hold: 001 there also writes src/Ledger.Application/Interest.cs
          not wave 1, where 001 also writes src/Ledger.Application/Interest.cs ("src/Ledger.Application/**" and "src/Ledger.Application/Interest.cs")
 
@@ -307,8 +317,8 @@ brief, which is how every spec-harness command knows which brief is in play:
 ```console
 $ npx spec-brief list
 ID   STATUS  WAVE  TASKS  READY  TITLE
-001  active  1     0/1    yes    001 — Compute interest in decimal
-002  draft   2     0/2    no     002 — Record every transfer
+001  active  1     0/1    yes    Compute interest in decimal
+002  draft   2     0/2    no     Record every transfer
 $ git switch -c brief/001-compute-interest
 $ npx spec-harness context
 # Round 001: Compute interest in decimal
@@ -421,7 +431,7 @@ Before the work, the audit says what is missing:
 
 ```console
 $ npx spec-harness audit
-audit of brief 001 from main (5158a1cc0d16)
+audit of brief 001 from main (079d71e74bf3)
 
 error    briefs/001_compute-interest-in-decimal.md:29  "no `double` in `src/Ledger.Application/Interest.cs`" is neither ticked nor dispositioned  archive/open-task
          tick it, or say why under it, as a bullet or as a paragraph after a blank line, starting "**Delegated", "**Accepted debt", "**Rejected"
@@ -430,8 +440,12 @@ error    briefs/001_compute-interest-in-decimal.md:31  "double" must not appear 
 warning  briefs/001_compute-interest-in-decimal.md:37  a premise still holds after the round: "double" must appear at least 1 time in src/Ledger.Application/Interest.cs  premise-holds
          the round set out to change what this premise states; check that it did, or move the assertion out of the premises
 
+measured: goals: 0 held, 1 failed · premises: 0 retired, 1 holding · archive: asked · rulings: 1 verified, 0 unverified · dependencies: 0 changed, 0 unread
 2 error(s), 1 warning(s), 0 note(s)
 ```
+
+The `measured:` line says what the audit read, so a part it could not read
+shows there instead of passing unseen.
 
 The agent adds `public decimal InterestAt(decimal rate) => Balance * rate;` to
 `Account`, makes `Interest.For` return `account.InterestAt(rate)`, ticks the
@@ -439,13 +453,14 @@ box, and commits under its own name. Then:
 
 ```console
 $ npx spec-harness audit
-audit of brief 001 from main (5158a1cc0d16)
+audit of brief 001 from main (079d71e74bf3)
 
 note     briefs/001_compute-interest-in-decimal.md:7  spec-harness waives protected-file for src/Ledger.Domain/Account.cs: ruling R-001-1, signed by person@example.test, allows it  archive/waived
          review the waiver with the round; it stands where the refusal was
 note     briefs/001_compute-interest-in-decimal.md:37  a premise no longer holds, as the round intended: "double" must appear at least 1 time in src/Ledger.Application/Interest.cs  premise-retired
          nothing to do
 
+measured: goals: 1 held, 0 failed · premises: 1 retired, 0 holding · archive: asked · rulings: 1 verified, 0 unverified · dependencies: 0 changed, 0 unread
 0 error(s), 0 warning(s), 2 note(s)
 ```
 
@@ -470,9 +485,9 @@ briefs/001_compute-interest-in-decimal.md
 
 banner:
   <!-- spec-brief:banner -->
-  > **Archived 2026-09-29.**
+  > **Archived 2026-09-30.**
   > Interest is computed in decimal.
-  > Recorded at commit `6ca5d0a`: 3 files changed, +10 −3.
+  > Recorded at commit `f044e51`: 3 files changed, +10 −3.
   > Relative links were rewritten to resolve from `briefs/archive/` (1); no other word changed.
   > The body below describes the tree before execution and is not maintained.
   <!-- /spec-brief:banner -->
@@ -490,18 +505,18 @@ nothing was committed; review the change and commit it with the round
 $ git add -A && git commit -m "Archive brief 001"
 $ git switch main && git merge --no-ff brief/001-compute-interest
 $ git log --oneline --graph -6
-*   edd43ff Merge brief 001: compute interest in decimal
+*   12b039c Merge brief 001: compute interest in decimal
 |\
-| * 3698490 Archive brief 001
-| * 6ca5d0a Compute interest in decimal (brief 001)
-| * e8f0956 ruling R-001-1: allow
+| * 951fdb7 Archive brief 001
+| * f044e51 Compute interest in decimal (brief 001)
+| * 0180393 ruling R-001-1: allow
 |/
-* 5158a1c Briefs 001 and 002; 001 approved
-* 0626372 Configure the spec tools; Pat signs rulings
+* 079d71e Briefs 001 and 002; 001 approved
+* 13a2b7b Configure the spec tools; Pat signs rulings
 $ npx spec-brief list --archived
 ID   STATUS    WAVE  TASKS  READY  TITLE
-002  draft     2     0/2    no     002 — Record every transfer
-001  archived  1     1/1    -      001 — Compute interest in decimal
+002  draft     2     0/2    no     Record every transfer
+001  archived  1     1/1    -      Compute interest in decimal
 ```
 
 ## In CI
@@ -525,7 +540,7 @@ commit. Its own rules pass; `main`'s do not:
 $ npx spec-guard
 spec-guard 2 specs · 1 assertion · javascript
 
-1 passed · 14ms
+1 passed · 11ms
 ✔ every spec assertion holds
 $ git worktree add --detach ../base main
 $ npx spec-guard "../base/docs/adr/**/*.md"
@@ -537,7 +552,7 @@ spec-guard 2 specs · 2 assertions · javascript
     reason: dependencies point inward
       src/Ledger.Domain/Account.cs:1:1  Ledger.Domain -> Ledger.Infrastructure: using Ledger.Infrastructure
 
-1 passed · 1 failed · 36ms
+1 passed · 1 failed · 18ms
 ```
 
 [Adopting](adopting.md) has both as jobs for GitHub Actions and GitLab CI,
