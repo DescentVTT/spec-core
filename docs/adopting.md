@@ -54,9 +54,13 @@ Each tool writes its findings in the forge's own format:
 | `spec-harness premises` | its exit code and log | its exit code and log |
 
 `spec-harness premises` names the round's brief from the branch, as every
-spec-harness command does, and a CI checkout is usually on no branch: without
-one, a round's own merge request reports the premise it set out to retire as
-stale. Each job below checks out the branch by name first.
+spec-harness command does. A CI checkout is usually on no branch, so on a
+detached HEAD it reads the branch the forge's CI names:
+`GITHUB_HEAD_REF`, `GITHUB_REF_NAME` on a branch push,
+`CI_MERGE_REQUEST_SOURCE_BRANCH_NAME` or `CI_COMMIT_BRANCH`
+([ADR-0004](https://github.com/DescentVTT/spec-harness/blob/main/docs/adr/0004-the-active-brief-is-named-not-guessed.md)).
+The jobs below rely on that and need spec-harness 0.7.0 or later: with 0.6, a
+round's own merge request reports the premise it set out to retire as stale.
 
 ### GitHub Actions
 
@@ -81,7 +85,6 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - run: git checkout -q -B "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
       - run: npx --no-install spec-guard --format github
       - if: ${{ !cancelled() }}
         run: npx --no-install spec-brief lint --format github
@@ -121,7 +124,6 @@ spec:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
     - npm ci
-    - git checkout -q -B "${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-$CI_COMMIT_BRANCH}"
     # The job stops at the first command that fails, so every tool runs once,
     # the worst exit code is kept, and the job ends with it.
     - worst=0
