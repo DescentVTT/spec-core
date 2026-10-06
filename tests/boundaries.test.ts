@@ -92,10 +92,15 @@ describe('module boundaries', () => {
 
 describe('the files themselves', () => {
   const skip = new Set(['node_modules', 'dist', 'coverage', 'reports', '.stryker-tmp', '.git']);
+  // Stryker writes a setup file for each of its workers into the sandbox it
+  // runs the tests in, as many as the runner has cores for. A case for each
+  // would make the cases differ from one shard of a sweep to the next, and the
+  // merge refuses shards that ran different tests.
+  const transient = /^stryker-setup-\d+\.js$/;
   const text = (directory: string): string[] => {
     const out: string[] = [];
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      if (skip.has(entry.name)) continue;
+      if (skip.has(entry.name) || transient.test(entry.name)) continue;
       const full = join(directory, entry.name);
       if (entry.isDirectory()) out.push(...text(full));
       else if (/\.(?:ts|mjs|js|json|md|yml|yaml)$/.test(entry.name) || entry.name.startsWith('.git')) out.push(full);
