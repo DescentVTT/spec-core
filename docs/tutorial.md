@@ -70,11 +70,14 @@ public static decimal For(Account account, decimal rate) =>
 ## 2. Install and configure
 
 The repository has no JavaScript of its own, so `package.json` holds nothing
-but the tools:
+but the tools. Every command from here on gives `npx` the package's full name
+and `--no-install`: it runs the install made on the first line and fetches
+nothing ([Names](adopting.md#names) says why the command's name alone is not
+written):
 
 ```console
 $ npm install --save-dev @descent-vtt/spec-brief @descent-vtt/spec-graph @descent-vtt/spec-guard @descent-vtt/spec-harness
-$ npx spec-harness init
+$ npx --no-install @descent-vtt/spec-harness init
 run     .spec-brief.json
         spec-brief init: the brief and archive directories, every default spelled out
 update  .spec-brief.json
@@ -93,7 +96,7 @@ advise  .github/allowed_signers
         rulings count only when signed by a key listed here on the base branch: one line per person, <email> namespaces="git" <public key>. …
 
 Nothing was changed. Run again with --write to apply the plan.
-$ npx spec-harness init --write
+$ npx --no-install @descent-vtt/spec-harness init --write
 ```
 
 The last two lines are advice. The git hook is written only with
@@ -110,7 +113,7 @@ $ git config user.signingkey ~/.ssh/ledger-person
 $ mkdir -p .github
 $ echo "person@example.test namespaces=\"git\" $(cut -d' ' -f1,2 ~/.ssh/ledger-person.pub)" > .github/allowed_signers
 $ git add -A && git commit -m "Configure the spec tools; Pat signs rulings"
-$ npx spec-harness doctor
+$ npx --no-install @descent-vtt/spec-harness doctor
 root    …/ledger
 branch  main
 brief   (none named)
@@ -137,7 +140,7 @@ spec-guard reads `docs/**/*.md` by default and runs every assertion in a
 document in force:
 
 ```console
-$ npx spec-guard --verbose
+$ npx --no-install @descent-vtt/spec-guard --verbose
 spec-guard 2 specs · 2 assertions · javascript
 
 ✔ docs/adr/0001-dependencies-point-inward.md:12  @assert-layers src must keep its layers in order, Ledger.Domain < Ledger.Application < Ledger.Infrastructure (0 violating files)
@@ -151,7 +154,7 @@ Add `using Ledger.Infrastructure;` to `Account.cs` and the ADR fails, on the
 line that broke it:
 
 ```console
-$ npx spec-guard
+$ npx --no-install @descent-vtt/spec-guard
 spec-guard 2 specs · 2 assertions · javascript
 
 ✖ docs/adr/0001-dependencies-point-inward.md:12  @assert-layers
@@ -167,7 +170,7 @@ Exit 1. Take the line out again. `prove` shows each rule a violation of
 itself, in memory, so a rule that cannot fail is found before it is trusted:
 
 ```console
-$ npx spec-guard prove
+$ npx --no-install @descent-vtt/spec-guard prove
 spec-guard prove 2 specs · 2 rules
 
 2 seen to fail · 20ms
@@ -180,7 +183,7 @@ spec-graph checks what the documents say about each other. ADR-0002 says it
 is constrained by ADR-0001, which spec-graph reads as `assumes`:
 
 ```console
-$ npx spec-graph check
+$ npx --no-install @descent-vtt/spec-graph check
 spec-graph 2 documents - 0 items - 1 relation - 0 open
 
 18.85ms
@@ -190,7 +193,7 @@ ok the specification graph is consistent
 Mark ADR-0001 `superseded` and the ADR resting on it is reported:
 
 ```console
-$ npx spec-graph check
+$ npx --no-install @descent-vtt/spec-graph check
 spec-graph 2 documents - 0 items - 1 relation - 0 open
 
 x docs/adr/0002-money-is-decimal.md:11:12  stale-premise
@@ -211,9 +214,9 @@ the next free id and every section the configuration requires, each with a
 comment saying what it must answer:
 
 ```console
-$ npx spec-brief new "Compute interest in decimal" --type defect --wave 1
+$ npx --no-install @descent-vtt/spec-brief new "Compute interest in decimal" --type defect --wave 1
 wrote briefs/001_compute-interest-in-decimal.md
-$ npx spec-brief lint
+$ npx --no-install @descent-vtt/spec-brief lint
 briefs/001_compute-interest-in-decimal.md
   12  warning  the "Intent" section is empty  empty-section
                The state of the tree when this round is done, and why it matters. One paragraph.
@@ -272,7 +275,7 @@ when the round is done. The one under *The Defect, Measured* is a *premise*:
 it holds now, and the round exists to make it stop.
 
 ```console
-$ npx spec-brief lint
+$ npx --no-install @descent-vtt/spec-brief lint
 1 brief(s) checked, no findings
 ```
 
@@ -284,7 +287,7 @@ Two rounds in one *wave* run side by side, so they must not be able to write
 the same file:
 
 ```console
-$ npx spec-brief matrix
+$ npx --no-install @descent-vtt/spec-brief matrix
 wave 1 · 2 briefs
        001  002
   001    ·    X
@@ -297,7 +300,7 @@ no pattern repeats the other. `schedule` computes waves that hold, and says
 why each brief moves:
 
 ```console
-$ npx spec-brief schedule --write
+$ npx --no-install @descent-vtt/spec-brief schedule --write
 wave 1 · 1 brief
   001  Compute interest in decimal
 wave 2 · 1 brief
@@ -315,12 +318,12 @@ sets it `active`, and commits it. The agent works on a branch named after the
 brief, which is how every spec-harness command knows which brief is in play:
 
 ```console
-$ npx spec-brief list
+$ npx --no-install @descent-vtt/spec-brief list
 ID   STATUS  WAVE  TASKS  READY  TITLE
 001  active  1     0/1    yes    Compute interest in decimal
 002  draft   2     0/2    no     Record every transfer
 $ git switch -c brief/001-compute-interest
-$ npx spec-harness context
+$ npx --no-install @descent-vtt/spec-harness context
 # Round 001: Compute interest in decimal
 
 Status active · wave 1 · branch `brief/001-compute-interest` · measured from `main`
@@ -355,12 +358,12 @@ each write the agent can ask, and with `init`'s hooks Claude Code asks on its
 own:
 
 ```console
-$ npx spec-harness guard src/Ledger.Application/Interest.cs
+$ npx --no-install @descent-vtt/spec-harness guard src/Ledger.Application/Interest.cs
 ok       src/Ledger.Application/Interest.cs is in brief 001's scope (src/Ledger.Application/Interest.cs)
-$ npx spec-harness guard src/Ledger.Application/Transfers.cs
+$ npx --no-install @descent-vtt/spec-harness guard src/Ledger.Application/Transfers.cs
 warning  src/Ledger.Application/Transfers.cs is outside brief 001's scope, which covers src/Ledger.Application/Interest.cs
          if the round needs it, say so in briefs/001_compute-interest-in-decimal.md and add it to affectedFiles; the archive reports every file outside the scope
-$ npx spec-harness guard src/Ledger.Domain/Account.cs
+$ npx --no-install @descent-vtt/spec-harness guard src/Ledger.Domain/Account.cs
 refused  brief 001 does not empower this round to change src/Ledger.Domain/Account.cs (protectedFiles: src/Ledger.Domain/**)
          if the round cannot be done without it, stop and ask for a ruling: spec-harness escalate --path <file> --reason <why>, or the request_escalation tool
 ```
@@ -377,7 +380,7 @@ The agent decides the fix belongs on `Account`, which the brief protects. It
 does not work around the refusal; it *escalates*:
 
 ```console
-$ npx spec-harness escalate --path src/Ledger.Domain/Account.cs \
+$ npx --no-install @descent-vtt/spec-harness escalate --path src/Ledger.Domain/Account.cs \
     --reason "Interest on a balance is the account's arithmetic; in Account it stays decimal where the balance lives." \
     --option "Allow: one new method, Account.InterestAt; no existing member changes" \
     --option "Refuse: Interest.cs multiplies the public Balance itself" \
@@ -405,7 +408,7 @@ the brief that counts only once Pat's signature is on the commit that wrote
 it:
 
 ```console
-$ npx spec-harness rule E-001-1 --allow --note "Add Account.InterestAt only."
+$ npx --no-install @descent-vtt/spec-harness rule E-001-1 --allow --note "Add Account.InterestAt only."
 briefs/001_compute-interest-in-decimal.md now holds ruling R-001-1:
 
   | R-001-1 | `src/Ledger.Domain/Account.cs` | allow | Add Account.InterestAt only. |
@@ -413,12 +416,12 @@ briefs/001_compute-interest-in-decimal.md now holds ruling R-001-1:
 It counts once you commit it signed, with a key the base branch's allowed signers list:
 
   git commit -S -m "ruling R-001-1: allow" -- briefs/001_compute-interest-in-decimal.md
-$ npx spec-harness rulings
+$ npx --no-install @descent-vtt/spec-harness rulings
 R-001-1  allow  src/Ledger.Domain/Account.cs  not verified: its row is not committed
 $ git commit -S -m "ruling R-001-1: allow" -- briefs/001_compute-interest-in-decimal.md
-$ npx spec-harness rulings
+$ npx --no-install @descent-vtt/spec-harness rulings
 R-001-1  allow  src/Ledger.Domain/Account.cs  signed by person@example.test
-$ npx spec-harness guard src/Ledger.Domain/Account.cs
+$ npx --no-install @descent-vtt/spec-harness guard src/Ledger.Domain/Account.cs
 ok       src/Ledger.Domain/Account.cs is protected by brief 001, and ruling R-001-1, signed by person@example.test, allows it
 ```
 
@@ -430,7 +433,7 @@ signature of a key in the *allowed signers* file as the *base* branch has it.
 Before the work, the audit says what is missing:
 
 ```console
-$ npx spec-harness audit
+$ npx --no-install @descent-vtt/spec-harness audit
 audit of brief 001 from main (079d71e74bf3)
 
 error    briefs/001_compute-interest-in-decimal.md:29  "no `double` in `src/Ledger.Application/Interest.cs`" is neither ticked nor dispositioned  archive/open-task
@@ -452,7 +455,7 @@ The agent adds `public decimal InterestAt(decimal rate) => Balance * rate;` to
 box, and commits under its own name. Then:
 
 ```console
-$ npx spec-harness audit
+$ npx --no-install @descent-vtt/spec-harness audit
 audit of brief 001 from main (079d71e74bf3)
 
 note     briefs/001_compute-interest-in-decimal.md:7  spec-harness waives protected-file for src/Ledger.Domain/Account.cs: ruling R-001-1, signed by person@example.test, allows it  archive/waived
@@ -474,7 +477,7 @@ The second human gate. The archive runs on the branch, before the merge,
 where the rulings verify:
 
 ```console
-$ npx spec-brief archive 001 --dry-run --summary "Interest is computed in decimal."
+$ npx --no-install @descent-vtt/spec-brief archive 001 --dry-run --summary "Interest is computed in decimal."
 would move briefs/001_compute-interest-in-decimal.md -> briefs/archive/001_compute-interest-in-decimal.md
   1 relative link rewritten
   the round changed 3 files
@@ -498,7 +501,7 @@ merges with a merge commit, which keeps the signed ruling's commit as it was
 (see [merge settings](adopting.md#merge-settings-that-keep-rulings)):
 
 ```console
-$ npx spec-brief archive 001 --summary "Interest is computed in decimal."
+$ npx --no-install @descent-vtt/spec-brief archive 001 --summary "Interest is computed in decimal."
 moved briefs/001_compute-interest-in-decimal.md -> briefs/archive/001_compute-interest-in-decimal.md
 …
 nothing was committed; review the change and commit it with the round
@@ -513,7 +516,7 @@ $ git log --oneline --graph -6
 |/
 * 079d71e Briefs 001 and 002; 001 approved
 * 13a2b7b Configure the spec tools; Pat signs rulings
-$ npx spec-brief list --archived
+$ npx --no-install @descent-vtt/spec-brief list --archived
 ID   STATUS    WAVE  TASKS  READY  TITLE
 002  draft     2     0/2    no     Record every transfer
 001  archived  1     1/1    -      Compute interest in decimal
@@ -525,11 +528,11 @@ On every change, CI runs the checks that need no round in flight. On `main`
 now, each exits `0`:
 
 ```bash
-npx spec-guard
-npx spec-graph check
-npx spec-brief lint
-npx spec-brief matrix
-npx spec-harness premises   # 0 premise(s) in 1 live brief(s), 0 no longer hold
+npx --no-install @descent-vtt/spec-guard
+npx --no-install @descent-vtt/spec-graph check
+npx --no-install @descent-vtt/spec-brief lint
+npx --no-install @descent-vtt/spec-brief matrix
+npx --no-install @descent-vtt/spec-harness premises   # 0 premise(s) in 1 live brief(s), 0 no longer hold
 ```
 
 And it checks a change against the base branch's rules. Suppose a change
@@ -537,13 +540,13 @@ deletes ADR-0001's assertion and adds the forbidden `using` in the same
 commit. Its own rules pass; `main`'s do not:
 
 ```console
-$ npx spec-guard
+$ npx --no-install @descent-vtt/spec-guard
 spec-guard 2 specs · 1 assertion · javascript
 
 1 passed · 11ms
 ✔ every spec assertion holds
 $ git worktree add --detach ../base main
-$ npx spec-guard "../base/docs/adr/**/*.md"
+$ npx --no-install @descent-vtt/spec-guard "../base/docs/adr/**/*.md"
 spec-guard 2 specs · 2 assertions · javascript
 
 ✖ ../base/docs/adr/0001-dependencies-point-inward.md:12  @assert-layers

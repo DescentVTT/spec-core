@@ -21,9 +21,10 @@ The documents may be written in any language, with the status in English -
 heading - which is the one set of status words every tool reads
 ([ADR-0005](adr/0005-the-family-contract.md#documents-and-state)).
 
-Run each tool from the project's install, `npx --no-install spec-guard`.
-Without `--no-install`, `npx` fetches a package from the registry when none is
-installed, and the unscoped name `spec-guard` belongs to a different package.
+Give `npx` the package's full name, and `--no-install` wherever the project
+has installed the tool: `npx --no-install @descent-vtt/spec-guard`. The
+command's name alone is not this project's on npm; [Names](#names) has what
+that costs and what was measured.
 
 The tools install and run the same under npm 10, 11 and 12. Each is one
 package with no dependencies and no install script, so npm 12, which runs a
@@ -40,8 +41,8 @@ on a small repository, with the output of every step.
 
 ```bash
 npm install --save-dev @descent-vtt/spec-brief @descent-vtt/spec-guard @descent-vtt/spec-graph @descent-vtt/spec-harness
-npx spec-harness init            # read the plan
-npx spec-harness init --write    # apply it
+npx --no-install @descent-vtt/spec-harness init            # read the plan
+npx --no-install @descent-vtt/spec-harness init --write    # apply it
 ```
 
 `init` makes the tools agree from the first day: spec-brief's brief and
@@ -49,6 +50,60 @@ archive directories, spec-graph reading the archive as history (an archived
 brief is a record, not a retired decision), the base branch rounds are
 measured from, the Claude Code hooks and MCP server. It merges into files you
 have and changes nothing until `--write`.
+
+## Names
+
+Each tool is published under the `@descent-vtt` scope and installs a command
+named without it:
+
+| Package: the name to install, and to give `npx` | The command it installs |
+| --- | --- |
+| `@descent-vtt/spec-brief` | `spec-brief` |
+| `@descent-vtt/spec-graph` | `spec-graph` |
+| `@descent-vtt/spec-guard` | `spec-guard` |
+| `@descent-vtt/spec-harness` | `spec-harness` |
+
+The same names without the scope are not this project. On npm, `spec-harness`
+is another publisher's package, and `spec-brief`, `spec-graph`, `spec-guard`
+and `spec-core` belonged to nobody on 2026-10-07: whoever registers one
+decides what it runs.
+
+That matters because of what `npx` does with a name. Where the project has
+the tool installed, it runs that install. Where it has not - a fresh clone, a
+linked worktree before `npm ci`, a CI job without the install step - it
+fetches the package of that name from the registry and runs it, and without a
+terminal, as in CI or under an agent, it does not ask first. So these pages
+give `npx` the package's full name, in one of two forms:
+
+- **`npx --no-install @descent-vtt/spec-guard`** in a project that installed
+  the tool: in CI, in a script, in what an agent is told to run. It runs the
+  project's install, the version the lockfile pins, and where there is none
+  it stops with an error that names this package, having fetched nothing.
+  Run it from the directory whose `package.json` lists the tools: npm reads
+  the install of the nearest `package.json`, or of the workspace root above
+  it.
+- **`npx @descent-vtt/spec-guard`**, without `--no-install`, where nothing is
+  installed: it fetches this package, its latest release, and runs it.
+
+<!-- bare-name: the two forms below are shown as what not to write -->
+Never `npx spec-guard`, the command's name alone. And
+`npx --no-install spec-guard` is not the fix: measured under npm 10.9.9,
+11.20.0 and 12.2.0, `--no-install` stops a download and nothing else. npm
+still runs a copy of the bare name's package that an earlier `npx` left in
+its cache, and where nothing is installed it asks the registry about the bare
+name and reports that package, with its version, as the one that is missing.
+
+If one of the bare names was ever run through `npx` on a machine, in a tree
+where the tool was not installed, empty npm's cache of fetched commands
+there: `npm cache npx ls` lists it and `npm cache npx rm <key>` removes an
+entry (npm 11 and later), and under any npm it is the `_npx` directory below
+the path `npm config get cache` prints.
+
+A `package.json` script names the command alone - `"specs": "spec-guard"` -
+because npm runs a script with the project's `node_modules/.bin` first on the
+path and never fetches for it. The hooks and the MCP server that
+`spec-harness init` writes go through neither: they run `node` with the path
+of the installed file.
 
 ## CI
 
@@ -98,15 +153,15 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - run: npx --no-install spec-guard --format github
+      - run: npx --no-install @descent-vtt/spec-guard --format github
       - if: ${{ !cancelled() }}
-        run: npx --no-install spec-brief lint --format github
+        run: npx --no-install @descent-vtt/spec-brief lint --format github
       - if: ${{ !cancelled() }}
-        run: npx --no-install spec-brief matrix --format github
+        run: npx --no-install @descent-vtt/spec-brief matrix --format github
       - if: ${{ !cancelled() }}
-        run: npx --no-install spec-harness premises
+        run: npx --no-install @descent-vtt/spec-harness premises
       - if: ${{ !cancelled() }}
-        run: npx --no-install spec-graph check --format sarif > spec-graph.sarif
+        run: npx --no-install @descent-vtt/spec-graph check --format sarif > spec-graph.sarif
       - if: ${{ !cancelled() }}
         uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
@@ -125,7 +180,7 @@ jobs:
   2026). Code scanning takes an upload in a public repository, and in a
   private one where GitHub Code Security is enabled; a private repository's
   job also needs `actions: read`. Without code scanning, write
-  `npx --no-install spec-graph check --format markdown >> "$GITHUB_STEP_SUMMARY"`
+  `npx --no-install @descent-vtt/spec-graph check --format markdown >> "$GITHUB_STEP_SUMMARY"`
   and drop the upload and `security-events: write` with it.
 - Node 24 is the Active LTS until 20 October 2026; Node 26 becomes the Active
   LTS on 28 October 2026.
@@ -143,11 +198,11 @@ spec:
     # The job stops at the first command that fails, so every tool runs once,
     # the worst exit code is kept, and the job ends with it.
     - worst=0
-    - npx --no-install spec-guard --format gitlab > gl-spec-guard.json || worst=$(( $? > worst ? $? : worst ))
-    - npx --no-install spec-graph check --format gitlab > gl-spec-graph.json || worst=$(( $? > worst ? $? : worst ))
-    - npx --no-install spec-brief lint --format gitlab > gl-spec-brief-lint.json || worst=$(( $? > worst ? $? : worst ))
-    - npx --no-install spec-brief matrix --format gitlab > gl-spec-brief-matrix.json || worst=$(( $? > worst ? $? : worst ))
-    - npx --no-install spec-harness premises || worst=$(( $? > worst ? $? : worst ))
+    - npx --no-install @descent-vtt/spec-guard --format gitlab > gl-spec-guard.json || worst=$(( $? > worst ? $? : worst ))
+    - npx --no-install @descent-vtt/spec-graph check --format gitlab > gl-spec-graph.json || worst=$(( $? > worst ? $? : worst ))
+    - npx --no-install @descent-vtt/spec-brief lint --format gitlab > gl-spec-brief-lint.json || worst=$(( $? > worst ? $? : worst ))
+    - npx --no-install @descent-vtt/spec-brief matrix --format gitlab > gl-spec-brief-matrix.json || worst=$(( $? > worst ? $? : worst ))
+    - npx --no-install @descent-vtt/spec-harness premises || worst=$(( $? > worst ? $? : worst ))
     - exit $worst
   artifacts:
     when: always
@@ -225,7 +280,7 @@ GitHub, a step after `npm ci` in the job above:
         run: |
           git fetch --no-tags --depth=1 origin "$GITHUB_BASE_REF"
           git worktree add --detach "$RUNNER_TEMP/base" FETCH_HEAD
-          npx --no-install spec-guard "$RUNNER_TEMP/base/docs/adr/**/*.md"
+          npx --no-install @descent-vtt/spec-guard "$RUNNER_TEMP/base/docs/adr/**/*.md"
 ```
 
 The job's checkout keeps no credentials, and a public repository's fetch
@@ -244,7 +299,7 @@ spec-base-rules:
     - git fetch --depth 1 origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
     - base="$(mktemp -d)"
     - git worktree add --detach "$base" FETCH_HEAD
-    - npx --no-install spec-guard "$base/docs/adr/**/*.md"
+    - npx --no-install @descent-vtt/spec-guard "$base/docs/adr/**/*.md"
 ```
 
 A merge request pipeline fetches only the pipeline's own ref, and a new

@@ -31,6 +31,47 @@ tool's CLAUDE.md can point.
   an agent. None calls an LLM: the agent is the LLM, and a tool's answers must
   be the same every time.
 
+### Names
+
+- *Amended 2026-10-07*: **a command names the package it runs.** Each tool
+  is published as `@descent-vtt/<name>` and installs a command called
+  `<name>`. Without the scope those names are not the family's: on npm
+  `spec-harness` is another publisher's package, and `spec-brief`,
+  `spec-graph`, `spec-guard` and `spec-core` belonged to nobody on
+  2026-10-07, so whoever registers one decides what it runs. `npx <name>`
+  runs the project's install where there is one, and elsewhere - a fresh
+  clone, a linked worktree before `npm ci`, a CI job without the install
+  step - fetches the package of the bare name and runs it, unasked when no
+  terminal is attached. So wherever the family writes a command for `npx` or
+  `npm exec` - a README, a guide, a skill, a hook, a workflow, a message a
+  tool prints - it writes the package's full name:
+  `npx --no-install @descent-vtt/<name>` where a project has installed the
+  tool, which runs that install or stops with an error that names this
+  package, and `npx @descent-vtt/<name>` where nothing is installed, which
+  fetches this package.
+
+  `--no-install` in front of the bare name is not written either. Measured
+  under npm 10.9.9, 11.20.0 and 12.2.0, with a made-up name served by a
+  registry on the loopback address: it stops a download and nothing else.
+  Where an earlier `npx <name>` left the bare name's package in npm's cache,
+  `npx --no-install <name>` runs it, exit 0; where nothing is installed it
+  asks the registry about the bare name and reports that package and its
+  version as the one missing, which is the wrong thing to install. The full
+  name with `--no-install` does neither: it asks only about the scoped
+  package, and stops. It reads the install of the nearest `package.json`, or
+  of the workspace root above it, so it is run from the directory that lists
+  the tools; from a nested package that is no workspace it stops where the
+  bare name would have found the root's install.
+
+  A `package.json` script names the command alone: npm runs a script with
+  the project's `node_modules/.bin` first on the path and fetches nothing for
+  it. A hook or a server entry runs `node` with the path of the installed
+  file. Each repository holds its own files to this in `tests/names.test.ts`,
+  which reads every document, workflow, script and source file for a bare
+  name behind `npx`, `npm exec` or another package manager's equivalent; the
+  few lines that show the bare form as what not to write say so with a
+  `bare-name:` comment above them.
+
 ### Findings and output
 
 - A finding has a rule id, a severity, a place (file, line, column where there
