@@ -100,6 +100,42 @@ prints; npm 11.20.0 and 12.2.0 list it with `npm cache npx ls` and remove an
 entry with `npm cache npx rm <key>`, which npm 10.9.9 does not have. With the
 entry gone, `--no-install` in front of the bare name stops again.
 
+A repository can have npm refuse the fetch for every command it runs through
+`npx`, the tools' and any other, with one line in an `.npmrc` committed
+beside its `package.json`:
+
+```ini
+yes=false
+```
+
+Measured under npm 10.9.9, 11.20.0 and 12.2.0 with made-up names, and no
+terminal attached:
+
+- **What it does.** `npx <name>` and `npm exec <name>` run the project's
+  install as before, and where there is none they stop, exit 1, with
+  `npx canceled due to missing packages and no YES option` and the package
+  they did not fetch, whether or not `CI` is set. `npm init <initializer>`,
+  which is `npx create-<initializer>`, stops the same way, and so does
+  `npx @descent-vtt/spec-guard` without `--no-install`, until the project
+  has installed the tool.
+- **Where.** In the directory of that `package.json`, in a plain
+  subdirectory of it and in a workspace of it. Not in a directory below it
+  that has a `package.json` of its own and is no workspace: npm reads the
+  `.npmrc` beside the nearest one, and from there it fetches as if the line
+  were not written.
+- **What it leaves alone.** `npm install`, `npm ci`, `npm run` and
+  `npm pack` do not read the key: in npm's own commands only `npm exec`,
+  `npm init` and, where npm has it, `npm trust` do. A script is handed one
+  more variable, `npm_config_yes`, empty. npm packs no `.npmrc` into a
+  tarball.
+- **What undoes it.** `--yes` on the command, and `npm_config_yes=true` in
+  the environment, which outranks the file. `--no-install` on the command
+  outranks the environment in turn, so the commands on these pages keep it.
+- **What it does not do.** Like `--no-install`, it stops a download and
+  nothing else: a package an earlier `npx` left in npm's cache of fetched
+  commands still runs, exit 0. Empty that cache as above, and npm stops
+  again.
+
 A `package.json` script names the command alone - `"specs": "spec-guard"` -
 because npm runs a script with the project's `node_modules/.bin` first on the
 path and never fetches for it. The hooks and the MCP server that
