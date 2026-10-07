@@ -47,6 +47,12 @@ to main, and applies the `break` once, to the merged report
 runner variance, re-measure with `scripts/mutation-timeline.mjs` and move
 files in the table there.
 
+Vitest stays on 4 while Stryker's runner runs no test against a mutant on 5,
+where the sweep reads 4%: Dependabot proposes no major of it,
+`tests/boundaries.test.ts` fails one made by hand, and
+[ADR-0008](docs/adr/0008-toolchain.md) has the reason and the steps that
+lift the hold, here first and then in the four tools.
+
 ## Changing a module
 
 A change here reaches every tool that copies the module. So:
