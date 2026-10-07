@@ -76,6 +76,14 @@ source, 3.54% on vitest 5.
 | --- | --- | --- | --- | --- | --- | --- |
 | 4.1.11 | 96.36% | 5,546 | 5,091 | 253 | 195 | 7 |
 | 5.0.0 | 4.00% | 5,546 | 221 | 1 | 5,317 | 7 |
+| 5.0.3 | 4.02% | 5,546 | 215 | 8 | 5,316 | 7 |
+
+The 5.0.3 row is a sweep dispatched on a branch made for it and deleted
+after, run 37588131334, with vitest and its coverage package at 5.0.3, the
+newest of the line that day, and nothing else changed: the suite passed, 791
+tests, and the sweep read as 5.0.0's did. The change is vitest 5's by
+design, so a later 5.0.x does not bring the runner back; only a release of
+the runner does.
 
 Under vitest 5, 5,313 mutants are survived, covered by a test, and ran none
 (`testsCompleted` is 0 in the report); under 4, none is. The 222 detected
