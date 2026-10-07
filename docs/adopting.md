@@ -95,9 +95,10 @@ name and reports that package, with its version, as the one that is missing.
 
 If one of the bare names was ever run through `npx` on a machine, in a tree
 where the tool was not installed, empty npm's cache of fetched commands
-there: `npm cache npx ls` lists it and `npm cache npx rm <key>` removes an
-entry (npm 11 and later), and under any npm it is the `_npx` directory below
-the path `npm config get cache` prints.
+there. It is the `_npx` directory below the path `npm config get cache`
+prints; npm 11.20.0 and 12.2.0 list it with `npm cache npx ls` and remove an
+entry with `npm cache npx rm <key>`, which npm 10.9.9 does not have. With the
+entry gone, `--no-install` in front of the bare name stops again.
 
 A `package.json` script names the command alone - `"specs": "spec-guard"` -
 because npm runs a script with the project's `node_modules/.bin` first on the
