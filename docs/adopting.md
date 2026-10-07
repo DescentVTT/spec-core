@@ -25,6 +25,13 @@ Run each tool from the project's install, `npx --no-install spec-guard`.
 Without `--no-install`, `npx` fetches a package from the registry when none is
 installed, and the unscoped name `spec-guard` belongs to a different package.
 
+The tools install and run the same under npm 10, 11 and 12. Each is one
+package with no dependencies and no install script, so npm 12, which runs a
+dependency's install script only where `allowScripts` in `package.json` names
+the package, blocks nothing of theirs and asks you to approve nothing. Under
+npm 12, `npx` writes two `npm notice run` lines to stderr before a tool
+starts; what the tool prints, in every `--format`, is on stdout as before.
+
 The words these pages use - brief, round, wave, ruling, base - are defined in
 [concepts](concepts.md), and the [tutorial](tutorial.md) runs the whole loop
 on a small repository, with the output of every step.
