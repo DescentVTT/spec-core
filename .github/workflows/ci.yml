@@ -28,10 +28,12 @@ jobs:
         # 22 is the floor, 24 the active LTS, 26 the current release.
         # Each image by the label that is its alone, never `-latest`, which
         # GitHub moves: these are what the three `-latest` labels gave on
-        # 2026-10-07, and Ubuntu 26.04, which `ubuntu-latest` gives from
-        # 2026-10-19. tests/runner-images.test.ts holds every job to a name,
-        # and ADR-0008 has the steps that move one.
-        os: [ubuntu-24.04, ubuntu-26.04, windows-2025-vs2026, macos-26]
+        # 2026-10-07. One Ubuntu image, the gates': this suite runs nothing of
+        # the image's but Node, and run 37650470030 saw it pass on Ubuntu 26.04,
+        # which `ubuntu-latest` gives from 2026-10-19.
+        # tests/runner-images.test.ts holds every job to a name, and ADR-0008
+        # has the steps that move one.
+        os: [ubuntu-24.04, windows-2025-vs2026, macos-26]
         node: ['22', '24', '26']
     steps:
       # Pinned to commits, with the tag beside each, as in the sibling tools.

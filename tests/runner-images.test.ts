@@ -20,7 +20,7 @@ const ROOT = join(import.meta.dirname, '..');
 
 /**
  * The labels that each name one image, read from the table in
- * actions/runner-images on 2026-10-08. `windows-2025` is not among them: it
+ * actions/runner-images on 2026-10-07. `windows-2025` is not among them: it
  * is the label that moved to the Visual Studio 2026 image in June.
  */
 const IMAGES: readonly string[] = ['ubuntu-24.04', 'ubuntu-26.04', 'windows-2025-vs2026', 'macos-26'];
@@ -28,7 +28,7 @@ const IMAGES: readonly string[] = ['ubuntu-24.04', 'ubuntu-26.04', 'windows-2025
 /**
  * Where every job but the suite's matrix runs: the image the sweep's timings
  * and the coverage floors were measured on. Moving it is ADR-0008's
- * procedure, and its last step is this line.
+ * procedure.
  */
 const GATES = 'ubuntu-24.04';
 
@@ -176,7 +176,7 @@ describe('the workflows here', () => {
 
   it('run everything but the matrix on the one image the sweep and the coverage were measured on', () => {
     // A gate on another image is another measurement: ADR-0008 says what
-    // moving one takes, and this constant moves last.
+    // moving one takes, and this constant moves with it.
     expect(labels.filter(({ matrix, label }) => !matrix && label !== GATES).map(({ where, label }) => `${where}: ${label}, where the gates run on ${GATES}`)).toEqual([]);
   });
 });
