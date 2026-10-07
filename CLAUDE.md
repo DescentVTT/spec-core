@@ -53,6 +53,12 @@ where the sweep reads 4%: Dependabot proposes no major of it,
 [ADR-0008](docs/adr/0008-toolchain.md) has the reason and the steps that
 lift the hold, here first and then in the four tools.
 
+Run a tool through `npm run <script>` or `npx --no-install <tool>`, never a
+bare `npx <name>`: before `npm ci` that fetches whatever the registry has
+under the name. `.npmrc` has npm stop there instead, and `tests/npm.test.ts`
+holds both. One of the family's own tools takes its package's full name
+([ADR-0005](docs/adr/0005-the-family-contract.md#names), Names).
+
 ## Changing a module
 
 A change here reaches every tool that copies the module. So:
