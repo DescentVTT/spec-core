@@ -5,6 +5,32 @@ copies a module names the spec-core commit in its own changelog.
 
 ## Unreleased
 
+### Security
+
+- **Every command in the guides gives `npx` the package's full name.** The
+  adopting guide and the tutorial gave it a tool's command name alone: behind
+  `--no-install` in the CI jobs, and with nothing in front in the quick start
+  and in each of the tutorial's commands. Without the `@descent-vtt` scope
+  those names are not the family's on npm: `spec-harness` is another
+  publisher's package, and `spec-brief`, `spec-graph`, `spec-guard` and
+  `spec-core` belonged to nobody on 2026-10-07. In a tree without the
+  install - a fresh clone, a linked worktree before `npm ci`, a CI job
+  without the install step - `npx` given the bare name fetches that package
+  and runs it, unasked when no terminal is attached. `--no-install` stops
+  the download, and still runs a copy an earlier fetch left in npm's cache
+  and reports the other publisher's package as the one missing (npm 10.9.9,
+  11.20.0 and 12.2.0, measured with a made-up name). The guides now write
+  `npx --no-install @descent-vtt/<name>`, which runs the project's install
+  or stops with an error that names this package, and
+  [Names](docs/adopting.md#names) says why. ADR-0005 makes it the family's
+  rule, and `tests/names.test.ts` holds every document, workflow, script and
+  source file here to it.
+  Upgrading: in a job or a script copied from the guide, write
+  `@descent-vtt/` in front of the tool's name. If a bare name was ever run
+  through `npx` on a machine, in a tree where the tool was not installed,
+  empty npm's cache of fetched commands there: the `_npx` directory below
+  the path `npm config get cache` prints.
+
 ### Changed since 7e41240
 
 What the tools that copied 7e41240 - all four - see when they copy again.

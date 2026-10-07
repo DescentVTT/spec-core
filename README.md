@@ -67,6 +67,23 @@ Why five tools and not the eleven once planned: [ADR-0006](docs/adr/0006-five-to
 - [Versions before 1.0](docs/adr/0009-versions-before-1-0.md): what a
   release's number promises about your CI.
 
+## Names
+
+Each tool is on npm under the `@descent-vtt` scope and installs a command
+named without it: `@descent-vtt/spec-guard` installs `spec-guard`. The same
+names without the scope are not this project. On npm, `spec-harness` is
+another publisher's package, and `spec-brief`, `spec-graph`, `spec-guard` and
+`spec-core` belonged to nobody on 2026-10-07: whoever registers one decides
+what it runs. spec-core itself is published under no name; it reaches a tool
+as a copy.
+
+`npx` fetches and runs the package of whatever name it is given when the
+project has none installed, so the family always gives it the full one:
+`npx --no-install @descent-vtt/spec-guard` in a project that installed the
+tool, `npx @descent-vtt/spec-guard` where nothing is installed.
+[Adopting](docs/adopting.md#names) has the reasons, and what was measured
+([ADR-0005](docs/adr/0005-the-family-contract.md#names)).
+
 ## Modules
 
 | Module | What it gives | Used by |
