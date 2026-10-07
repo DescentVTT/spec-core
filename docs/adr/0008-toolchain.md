@@ -121,11 +121,15 @@ then.
 `@stryker-mutator/vitest-runner` 10.1.0 or later, with
 `@stryker-mutator/core` at the same version, which the runner's peer range
 asks for exactly. The number is not the test: the release's notes must name
-#6210, #6214 or #6220. Then, here first, because this repository's sweep
-runs in full on every pull request and takes about nine minutes:
+#6210, #6214 or #6220. Nothing here watches for that release but
+Dependabot, which still proposes the `stryker` group, two weeks after a
+minor is published: that pull request is the prompt to read the notes.
+Then, here first, because this repository's sweep runs in full on every
+pull request and takes about nine minutes:
 
 1. On a branch of spec-core, in one commit: both Stryker packages to the
-   fixed release; `vitest` and `@vitest/coverage-v8` to a 5 chosen by hand
+   fixed release, if Dependabot's pull request has not already brought
+   them; `vitest` and `@vitest/coverage-v8` to a 5 chosen by hand
    (see the cooldown, below); the hold taken out, which is the test in
    `tests/boundaries.test.ts` and the two vitest entries under `ignore` in
    `.github/dependabot.yml`. Nothing under `src/` and no other test, so that
