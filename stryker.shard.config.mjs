@@ -3,7 +3,7 @@
  * One shard of the sweep CI runs: the base configuration with three
  * differences. See scripts/mutation-shards.mjs and ADR-0007.
  *
- *   MUTATION_SHARD=2 npx stryker run stryker.shard.config.mjs
+ *   MUTATION_SHARD=2 npx --no-install stryker run stryker.shard.config.mjs
  *
  * @type {import('@stryker-mutator/api/core').PartialStrykerOptions}
  */
