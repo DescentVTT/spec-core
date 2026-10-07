@@ -34,7 +34,8 @@ The compiler options are the strictest union of the tools' own: `strict`,
 A file that compiles here compiles in every tool.
 
 GitHub Actions are pinned to commits, with the tag beside each, as the
-siblings pin them.
+siblings pin them. *Amended 2026-10-08*: and every job names the image it
+runs on; see below.
 
 ## Consequences
 
@@ -185,3 +186,164 @@ keeps out a release withdrawn in its first days, which is what it is for;
 it does not choose a patched one. A major is therefore taken by hand, at a
 version read from the registry: the newest patch that has had the week
 this family asks of a patch, on a line that has had its month.
+
+## Amended 2026-10-08: every job names its runner image
+
+GitHub announced on 2026-09-17 that `ubuntu-latest` moves from Ubuntu 24.04
+to Ubuntu 26.04, rolled out between 2026-10-19 and 2026-11-19
+([actions/runner-images #14748](https://github.com/actions/runner-images/issues/14748)).
+For that month a job that says `ubuntu-latest` is handed either image, and
+which one is not the job's to say. Every job in the five repositories said
+`ubuntu-latest`, 29 of them, or ran a matrix of `ubuntu-latest`,
+`windows-latest` and `macos-latest`. Everything else a workflow runs is
+named: an action by its commit, the release's npm by its version, vitest by
+its major. The image was the one thing left to a label that moves, under
+gates whose numbers were measured on one image.
+
+**What the labels gave.** The image is the one the "Runner Image" group of
+a job's log names, read on 2026-10-07 from run 37638464017 here, and the
+label is from the table in actions/runner-images' README the same day:
+
+| The label a job said | The image its log named | The label that is that image's alone |
+| --- | --- | --- |
+| `ubuntu-latest` | `ubuntu-24.04` | `ubuntu-24.04` |
+| `windows-latest` | `windows-2025-vs2026` | `windows-2025-vs2026` |
+| `macos-latest` | `macos-26-arm64` | `macos-26` |
+
+`windows-2025` names the same image today and is not its alone: it moved
+with `windows-latest`, between 8 and 15 June 2026, to the image with Visual
+Studio 2026 (#14017). `macos-latest` moved to macOS 26 the same month
+(#14167).
+
+**What a name holds still.** A label like `ubuntu-24.04` names a release
+of the operating system, not a build of the image. GitHub rebuilds each
+image about weekly and rolls the build out over days: on 2026-10-07
+`ubuntu-24.04` was build 20260927.320.1 in one job and 20261004.327.1 in
+another of the same hour. What comes with the release stays - the kernel,
+bash, coreutils, OpenSSH, what apt installs - and what the image adds on
+top, git and the cached Node versions among them, moves under the name.
+
+What the two Ubuntu images carried that day, from each image's README at
+the build the logs named, and from the logs where it says so:
+
+| | `ubuntu-24.04`, 20260927.320.1 | `ubuntu-26.04`, 20260927.149.1 |
+| --- | --- | --- |
+| Git, from the logs | 2.55.0 | 2.55.0 |
+| Node that setup-node gives for 22, 24 and 26, from the logs | 22.23.3, 24.21.0, 26.10.0 | the same three |
+| Node before setup-node | 22.23.3 | 24.21.0 |
+| Bash | 5.2.21 | 5.3.9 |
+| coreutils | 9.4, GNU's | 9.5-1ubuntu2+0.0.0~ubuntu25, the package that chooses between uutils and GNU's |
+| OpenSSH | 9.6p1 | 10.2p1 |
+| ripgrep | none; apt has 14.1.0 | none; apt has 15.1.0 |
+| Kernel | 6.17 | 7.0 |
+
+Git is 2.55.0 on all four images, `2.55.0.windows.5` on Windows, so no
+suite meets two gits today. No image carries ripgrep: spec-guard's suite
+runs the binary `@vscode/ripgrep` installs, the same one on both Ubuntu
+images. The apt versions are Launchpad's for noble and resolute, and which
+coreutils the 26.04 image runs was not measured.
+
+**What ran on Ubuntu 26.04.** Each repository's suite, on Node 22, 24 and
+26, in the first run of the pull request that made this change there. All
+three legs passed in each; the counts are the Node 22 leg's, and the
+`ubuntu-24.04` leg beside it read the same:
+
+| Repository | Run | Tests on `ubuntu-26.04` |
+| --- | --- | --- |
+| spec-core | 37650470030 | 914 passed |
+| spec-brief | 37652118349 | 928 passed |
+| spec-graph | 37652125809 | 2,062 passed |
+| spec-guard | 37652138720 | 3,910 passed |
+| spec-harness | 37652155388 | 1,098 passed, 2 skipped |
+
+Nothing failed, and nothing was skipped on one image that ran on the
+other. The Test step's time on 26.04 was within three seconds of 24.04's
+in four of the five and shorter in spec-harness, the longest suite, 28 to
+41 seconds against 39 to 41: one run, and not a measurement of the
+runners.
+
+**The decision.**
+
+- Every `runs-on`, and every entry of a matrix's `os`, is `ubuntu-24.04`,
+  `ubuntu-26.04`, `windows-2025-vs2026` or `macos-26`. No `-latest`, and
+  not `windows-2025`.
+- The suite's matrix in the four tools runs both Ubuntu images. Their
+  suites run programs the image supplies - git, ssh-keygen, and bash and
+  coreutils under the release's own script, which `tests/npm.test.ts` runs
+  on Linux - and their users' jobs say `ubuntu-latest`, as the examples in
+  spec-guard's README and in `docs/adopting.md` here do. Those examples
+  stay: the label there is the user's to choose, and the matrix tests both
+  of its answers.
+- This repository's suite runs nothing of the image's but Node, which
+  setup-node installs, so its matrix names `ubuntu-24.04` alone. Run
+  37650470030 is its one pass on 26.04.
+- Windows and macOS are named at what their `-latest` gave, and no leg is
+  added on either.
+- Coverage, the mutation sweeps and every job of a release stay on
+  `ubuntu-24.04`. Each sweep's timeout, shard table and `break` come from
+  sweeps on that image, the coverage floors from runs on it, and every
+  release so far was packed and staged on it. A gate on another image is
+  another measurement, made on purpose and by the steps below.
+- `tests/runner-images.test.ts` in each repository fails a `-latest` label
+  anywhere a workflow reads one, a label that is not one of the four, and
+  a job outside the matrix that is not on `ubuntu-24.04`. In spec-graph it
+  also holds the step that runs on one leg to a leg the matrix lists.
+
+**Moving an image.** Nothing proposes one: Dependabot reads `uses:` and
+not `runs-on`. The prompt is an announcement in actions/runner-images: a
+`-latest` that is about to move, as here, or an image's retirement, which
+Ubuntu 22.04's had ten months of (#14254, announced 2026-06-16, the image
+unsupported from 2027-04-17).
+
+A leg of the suite's matrix, added or retired:
+
+1. Read the announcement, and the image's README for what the suites run:
+   git, bash, coreutils, OpenSSH and the Node versions it caches.
+2. One pull request in each repository changes the matrix, and `IMAGES` in
+   `tests/runner-images.test.ts` with it. Its own run is the proof: the
+   suite on the image, on Node 22, 24 and 26.
+3. A failure there is the finding. A small fix in the tool or the test
+   goes in that pull request; anything else keeps the leg out, and is
+   written here.
+
+A leg leaves the matrix when no gate runs on its image and no `-latest`
+gives it.
+
+The gates, from `ubuntu-24.04` to another image: no sooner than the
+rollout that makes the image `-latest` has ended, 2026-11-19 for Ubuntu
+26.04, and here first, because this repository's sweep runs in full on
+every pull request and takes about nine minutes.
+
+1. On a branch, in one commit: every `runs-on` outside the matrix, `GATES`
+   in `tests/runner-images.test.ts`, and the comments that name the image.
+   Nothing under `src/` and no other test, so that the sweep compares two
+   images over one suite.
+2. The pull request's `mutation` job is the measurement. Accept when the
+   merged score is within half a point of main's last sweep, no shard has
+   passed the minutes its comment in the workflow names, 15 here, and the
+   count of mutants that timed out is near main's: a timeout counts as
+   detected, so a count well off is read mutant by mutant before the score
+   is believed.
+3. The `coverage` job of the same run passes its floors.
+4. Merge, then make the same change in the four tools, a pull request
+   each. Only spec-harness's pull request runs a sweep that measures the
+   image, its core sweep. spec-graph's and spec-guard's are incremental
+   and reuse the verdicts the old image gave, and spec-brief sweeps main.
+   So before one is merged, dispatch `mutation.yml` on its branch, the full
+   sweep in each of the four (in spec-brief with `full` ticked), and hold
+   it to the same conditions against the repository's last full sweep.
+5. The release's jobs move in that commit. The suite has run the step
+   that installs the staging npm, under each Ubuntu image's bash and
+   coreutils, on every change since this amendment. The rest of a release,
+   the pack and the tarball's listing and hash, is tried by a rehearsal
+   (each tool's CONTRIBUTING.md): from the branch in spec-guard, whose dry
+   run goes on from one, and in the other three from main, which their
+   workflow requires, once the pull request is merged and before any tag.
+   A rehearsal that fails on the image is fixed before a version is
+   tagged, or the pull request is reverted whole.
+6. Amend this record with the runs and what they read.
+
+spec-guard's engine budgets are not a gate and do not move by these steps.
+Its ADR-0004 measured them on `ubuntu-24.04` with the ripgrep that apt
+installs there, 14.1.0; whether 15.1.0 on Ubuntu 26.04 moves the Linux
+budget is that record's to measure.
