@@ -59,6 +59,13 @@ under the name. `.npmrc` has npm stop there instead, and `tests/npm.test.ts`
 holds both. One of the family's own tools takes its package's full name
 ([ADR-0005](docs/adr/0005-the-family-contract.md#names), Names).
 
+Every job names the image it runs on, never a `-latest` label, which GitHub
+moves: coverage and the sweep stay on `ubuntu-24.04`, where their numbers
+were measured. `tests/runner-images.test.ts` fails a label that names no
+image and a gate that leaves its own, and
+[ADR-0008](docs/adr/0008-toolchain.md) has the labels and the steps that
+move an image, here and in the four tools.
+
 ## Changing a module
 
 A change here reaches every tool that copies the module. So:
