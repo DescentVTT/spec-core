@@ -86,8 +86,9 @@ carry the average. spec-harness's core sweep read 3.83% over 4,862 mutants
 the same day, where its main reads 98.13%. In the other three the bump
 passed its mutation checks or met none: spec-brief sweeps main and no pull
 request, spec-graph's sweep of a pull request is incremental and reused
-8,381 of 8,385 verdicts, and spec-guard's reused 12,218 of 12,294. spec-guard
-alone failed, on the assertion in its ADR-0003.
+8,381 of 8,385 verdicts, and spec-guard's reused 12,218 of 12,294. Of the
+three, spec-guard's pull request alone failed, and on the assertion in its
+ADR-0003, not on a sweep.
 
 **The decision.** `vitest` and `@vitest/coverage-v8` stay on the 4 line in
 all five repositories until a released `@stryker-mutator/vitest-runner`
@@ -135,9 +136,10 @@ runs in full on every pull request and takes about nine minutes:
 3. Open the pull request and wait for its `mutation` job. Accept only if
    both of these hold.
    - The merged score is within half a point of main's last sweep, 96.36%
-     as this is written. Sharded sweeps of one source have read 96.23 to
-     96.38% (ADR-0007). A wider gap is read mutant by mutant, as that
-     record reads one, before anything is accepted.
+     as this is written. Sharded sweeps of one source have read 96.20 to
+     96.38% (ADR-0007), the lowest of them the sweep of this amendment. A
+     wider gap is read mutant by mutant, as that record reads one, before
+     anything is accepted.
    - No mutant in the merged report is survived, covered and untested:
 
      ```bash
@@ -154,8 +156,9 @@ runs in full on every pull request and takes about nine minutes:
    its core sweep. spec-graph's and spec-guard's are incremental and reuse
    the verdicts vitest 4 gave, and spec-brief sweeps main. So before one is
    merged, dispatch `mutation.yml` on its branch, which is the full sweep in
-   each of the four, and hold that sweep to the same two conditions against
-   the repository's last sweep of main.
+   each of the four (in spec-brief with `full` ticked, which is not its
+   default), and hold that sweep to the same two conditions against the
+   repository's last sweep of main.
 5. Each of those changes takes its own hold out - spec-guard's is the pin
    and the assertion in its ADR-0003 - and amends its ADR to say so.
 

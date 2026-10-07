@@ -410,10 +410,17 @@ gate by 1.7 points or more.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 972bbe5, main | 37556549438 | 96.36% | 5,546 | 5,091 | 253 | 195 | 7 |
 | a922927, vitest 5.0.0 | 37528529991 | 4.00% | 5,546 | 221 | 1 | 5,317 | 7 |
+| 5eb0eed, the hold | 37568501290 | 96.20% | 5,546 | 5,107 | 228 | 204 | 7 |
 
 The second is Dependabot's pull request 18, and it reads the runner, not
 the tests: on vitest 5 Stryker's vitest runner ran no test against 5,313
 mutants that tests cover, and scored each as survived. ADR-0008, amended the
 same day, has the cause, the hold on vitest 4 and the check that lifts it.
+The third is the pull request that holds vitest on 4: main's source, and
+three tests more that reach none of it. Mutant by mutant against main's,
+5,509 verdicts are the same and 37 moved, every one into or out of a
+timeout: 22 that had timed out were killed, six went the other way, and
+nine that had timed out finished and survived. Those nine are its 0.16
+points under main, and what two sweeps of one source differ by.
 **The `break` stays 94.5**, and no sweep under vitest 5 is set beside one
 under 4 until that check has passed.
