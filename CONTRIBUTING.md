@@ -1,7 +1,7 @@
 # Contributing
 
 ```bash
-npm install
+npm ci
 npm run lint            # tsc --noEmit
 npm test                # vitest
 npm run build
@@ -10,6 +10,11 @@ npm run test:mutation   # stryker, the whole sweep in one process
 
 Node 22 or later. Vitest reads `src/` directly; there is no build step for the
 tests.
+
+npm 10, 11 and 12 install the same tree from the lockfile and run the same
+suite. `npm ci` leaves the lockfile as it is under each of them; npm 10's
+`npm install` writes it back without the `libc` fields npm 11 and 12 keep, so
+a change to the lockfile is made with npm 11 or later.
 
 CI runs the mutation sweep on every pull request and every push to main, in
 shards that each mutate their own files against every test, and fails the
