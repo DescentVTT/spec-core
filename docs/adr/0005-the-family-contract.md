@@ -24,6 +24,32 @@ tool's CLAUDE.md can point.
   an action. `2` its result cannot be trusted: a configuration that did not
   load, an unknown key, a directory that does not exist, a question it could
   not decide. A tool never falls back to defaults and reports clean.
+
+  *Amended 2026-10-08*: **an error a tool did not expect is `2`.** A run
+  that ends on an error none of the tool's code names - a defect, a stream
+  that refused a write, a value it never checked - has a result that cannot
+  be trusted, and the tool says so itself: `<tool>: unexpected error:` and
+  the stack on stderr, so that a report of it can be acted on, nothing on
+  stdout for it, where a script reads a document, and exit `2`. Left to
+  Node, an uncaught error is the stack and exit `1`, which this line reads
+  as "it found something", and a pipeline that lets `1` through while a tool
+  is adopted ([Adopting](../adopting.md#ci)) let the crash through with it.
+  Measured on 2026-10-08 with a stdout that throws: spec-graph 0.12.1,
+  spec-guard 0.19.1 and spec-harness 0.10.1 exited `1` from `--version`,
+  `--help` and each command tried, and spec-brief 0.5.1, which caught such
+  an error inside a command, from `--version`, `--help` and what it does
+  before a command starts.
+
+  The error is caught in the command line's entry point, which is given its
+  streams, so a test holds it in process. What nothing awaits - a stream's
+  `error` event, such as a pipe its reader closed, a timer's callback in a
+  session that stays open - never reaches that function, and the launcher,
+  which owns the process, answers it the same way. A hook is no exception:
+  `2` is what makes an agent's host hold the write spec-harness's guard
+  could not check. A command that stays open answers the failure of one
+  request or one run as its own ADR says, and ends this way only when the
+  command itself cannot go on. Each tool names, in its CHANGELOG, the
+  release that first exits `2` for it.
 - **Nothing measured is not clean.** A check that inspected nothing - an empty
   scope, a diff that was never read, a base equal to the head - says so, and
   under `--strict` refuses.
