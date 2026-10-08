@@ -42,8 +42,10 @@ copies a module names the spec-core commit in its own changelog.
   what an option documents, a variable of a tool's own that it cannot use:
   exit `2` and a line that names it, never a run as if it had not been
   given. It says which variables stay lenient, as conventions other programs
-  set, and that the tools read those one way. The adopting guide lists the
-  refusal under exit `2`.
+  set, and how the tools read those one way: `NO_COLOR` off and over
+  `FORCE_COLOR`, `FORCE_COLOR=0` off and any other value on, `TERM=dumb` off
+  unless colour is forced, and `CI` not read for colour. The adopting guide
+  lists the refusal under exit `2`.
 
 ### Changed since 7e41240
 

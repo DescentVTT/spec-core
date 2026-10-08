@@ -134,14 +134,26 @@ tool's CLAUDE.md can point.
   What is not the family's own stays lenient. `NO_COLOR`, `FORCE_COLOR`,
   `CI`, `TERM` and the terminal's own variables are conventions that other
   programs set, and a value a tool does not know is no reason to stop a
-  run. The tools read them one way all the same, and where one differed it
-  is brought to the others: `NO_COLOR` set to anything turns colour off,
-  as its specification has it; either variable set to nothing is as unset;
-  `FORCE_COLOR=0` turns colour off on a terminal too, in spec-guard as in
-  spec-brief and spec-graph, where it only declined to force it; and `CI`
-  decides nothing about colour, in spec-graph as in the other two, where
-  it turned it off. spec-graph alone still takes `TERM=dumb` for a
-  terminal that draws no colour, which is what that value says.
+  run. The tools read them one way all the same:
+
+  - `NO_COLOR` set to anything turns colour off, as its specification has
+    it, and wins over `FORCE_COLOR`;
+  - `FORCE_COLOR=0` turns colour off, on a terminal too, and any other
+    value forces it on;
+  - either of the two set to nothing is as unset;
+  - `TERM=dumb` turns colour off unless colour is forced. It is the
+    terminal saying it draws none, Node answers it the same way
+    (`getColorDepth({ TERM: 'dumb' })` is 1 on 24.18.1, and 4 with
+    `FORCE_COLOR=1` beside it), and escapes written to such a terminal are
+    wrong;
+  - `CI` decides nothing about colour.
+
+  Where a tool differed it is brought to this, and none is brought down
+  to another: spec-guard read `FORCE_COLOR=0` as only declining to force
+  colour, spec-graph alone turned colour off for `CI`, and spec-graph
+  alone read `TERM=dumb`, which spec-brief and spec-guard are to read as
+  it does. Each tool names, in its CHANGELOG, the release that first
+  reads them so.
 
   Each refusal is input refused that was accepted, a minor release
   ([ADR-0009](0009-versions-before-1-0.md)), listed under **Changed** with
