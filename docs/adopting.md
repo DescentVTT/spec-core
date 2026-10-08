@@ -146,7 +146,8 @@ of the installed file.
 
 Every tool exits `0` when clean, `1` when it found something, and `2` when
 its answer cannot be trusted - a configuration that did not load, an unknown
-key, a directory that does not exist, a question it could not decide, an
+key, a directory that does not exist, an option or a variable set to
+something that names nothing, a question it could not decide, an
 output its reader closed before all of it was written, or an error the tool
 did not expect, which it reports on stderr as `<tool>: unexpected error:`
 with its stack ([ADR-0005](adr/0005-the-family-contract.md#runs)). Treat `2`

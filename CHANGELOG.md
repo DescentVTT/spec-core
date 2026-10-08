@@ -37,6 +37,13 @@ copies a module names the spec-core commit in its own changelog.
   2026-10-08, an error a tool did not expect and an output its reader closed
   among them, and says why its GitLab job lets exit `1` through and never
   `2`. ADR-0005 records the one line each tool prints for a closed output.
+- ADR-0005 states the family's rule for an input that is set and names
+  nothing - an empty `--root`, a list of separators alone, a number outside
+  what an option documents, a variable of a tool's own that it cannot use:
+  exit `2` and a line that names it, never a run as if it had not been
+  given. It says which variables stay lenient, as conventions other programs
+  set, and that the tools read those one way. The adopting guide lists the
+  refusal under exit `2`.
 
 ### Changed since 7e41240
 
