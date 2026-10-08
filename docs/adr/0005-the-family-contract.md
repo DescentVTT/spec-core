@@ -50,6 +50,47 @@ tool's CLAUDE.md can point.
   request or one run as its own ADR says, and ends this way only when the
   command itself cannot go on. Each tool names, in its CHANGELOG, the
   release that first exits `2` for it.
+
+  *Amended again 2026-10-08*: **an exit `2` a tool could foresee says so in
+  a line.** `unexpected error:` and a stack are for an error none of the
+  tool's code names, so that a report of a defect can be acted on. A reader
+  that closes a tool's output is no defect: `| head` does it every day, and
+  the stack sent a person looking for one. Measured on 2026-10-08 through
+  each launcher (Windows 11, Node 24.18.1), with stdout closed before the
+  run wrote to it: spec-brief 0.6.0, spec-graph 0.13.0, spec-guard 0.20.0
+  and spec-harness 0.11.0 each printed
+  `<tool>: unexpected error: Error: EPIPE: broken pipe, write` and its
+  stack, from `--version`, `--help` and every command tried, from
+  spec-guard's watch session and from both MCP servers. Each now prints
+  one line and no stack,
+
+      <tool>: stdout was closed before all of the output was written
+
+  and exits `2` as before: the answer did not arrive, and the part of a
+  document a script was handed is not the document. The exit code is not
+  `0`, which would say the answer was given, nor `1`, which is a finding.
+
+  The failed write is `EPIPE`: Node ignores the signal a closed pipe sends
+  on Linux and macOS, and reports the error instead. Its own streams never
+  throw it where it is awaited. They report it as an `error` event, which
+  only the launcher can answer, in every case measured on Windows and in
+  each tool's tests of its launcher on Linux and macOS, behind a shell's
+  pipe as behind a parent process's. The entry point answers in the same
+  words where a caller's own stream does throw it. The error is read by its
+  code, which is enough while a tool writes to no pipe but stdout and
+  stderr; one that comes to write to another, a child's input, must tell
+  them apart before it says "stdout". When stderr is the stream that closed
+  there is nowhere left to say anything: nothing is written, to stdout
+  either, and the exit is still `2`. A write that fails for any other
+  reason, a full disk, keeps `unexpected error:` and its stack. An output
+  smaller than the pipe is written whole before its reader leaves, and that
+  run ends as it would have.
+
+  The same goes for an error a tool raises itself with a message written
+  for a person, such as a git command that failed or a value in the
+  environment no date can be made of: it is that message on one line,
+  `<tool>: <message>`, and exit `2`. The stack is kept for what nothing
+  named. Each tool lists, in its CHANGELOG, what it now says in a line.
 - **Nothing measured is not clean.** A check that inspected nothing - an empty
   scope, a diff that was never read, a base equal to the head - says so, and
   under `--strict` refuses.
