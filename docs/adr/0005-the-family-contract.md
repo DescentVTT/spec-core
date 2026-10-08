@@ -91,6 +91,66 @@ tool's CLAUDE.md can point.
   environment no date can be made of: it is that message on one line,
   `<tool>: <message>`, and exit `2`. The stack is kept for what nothing
   named. Each tool lists, in its CHANGELOG, what it now says in a line.
+
+  *Amended 2026-10-09*: **an input that is set and names nothing is
+  refused.** "Never falls back to defaults and reports clean" was written
+  of a configuration. An option or a variable given a value that names
+  nothing fell back the same way: read as if it had not been given, the run
+  answered a question nobody had put, and exited `0`. Measured on the
+  releases of 2026-10-09, by each tool's pull request below: spec-brief
+  0.6.1 took a `SOURCE_DATE_EPOCH` of `tomorrow` for no value and wrote the
+  clock's date, and `new --id ""` wrote a file no command reads again;
+  spec-graph 0.13.1 read `--family ""` as no family and reported a dangling
+  citation clean; spec-guard 0.20.1 read `--spec ""` as the root and ran
+  every spec under it, `--root ""` as the working directory,
+  `--strict=false` as `--strict`, a root that was not there as a clean
+  `cites`, and `--engine rg` with a program that is not ripgrep as a run on
+  its other engine. A value that names nothing is most often a variable
+  that was not set where the command was written, `--root "$DIR"`, and the
+  pipeline that wrote it is the one that cannot see the difference.
+
+  Each is exit `2` and one line that names the option or the variable, what
+  it holds and what to do:
+
+  - an option that takes a value, given an empty one - whitespace alone
+    too, where the value is a name, an id, a path, a pattern or a number -
+    unless emptiness means something for that option and its documentation
+    says so, as spec-guard's `--exclude=` clears a list;
+  - an argument a command does not take, and a value given to an option
+    that takes none;
+  - a path that is not what the option needs: a root that is a file or is
+    not there, a configuration that is a directory;
+  - a list that names nothing, `","`;
+  - a number outside what the option documents;
+  - a tool's own environment variable set to something the tool cannot
+    use, refused by the run that reads it: a run that never reads the
+    variable is not stopped by it.
+
+  Asked for and not delivered is a refusal as well: a run told to use one
+  engine, one file or one date does not answer with another. A variable of
+  the family's own that turns something on is off for `0`, `false` and
+  empty, and is documented where its option is.
+
+  What is not the family's own stays lenient. `NO_COLOR`, `FORCE_COLOR`,
+  `CI`, `TERM` and the terminal's own variables are conventions that other
+  programs set, and a value a tool does not know is no reason to stop a
+  run. The tools read them one way all the same, and where one differed it
+  is brought to the others: `NO_COLOR` set to anything turns colour off,
+  as its specification has it; either variable set to nothing is as unset;
+  `FORCE_COLOR=0` turns colour off on a terminal too, in spec-guard as in
+  spec-brief and spec-graph, where it only declined to force it; and `CI`
+  decides nothing about colour, in spec-graph as in the other two, where
+  it turned it off. spec-graph alone still takes `TERM=dumb` for a
+  terminal that draws no colour, which is what that value says.
+
+  Each refusal is input refused that was accepted, a minor release
+  ([ADR-0009](0009-versions-before-1-0.md)), listed under **Changed** with
+  what to do on upgrading. The tools' pull requests:
+  DescentVTT/spec-brief#50 for `SOURCE_DATE_EPOCH`, and from a branch named
+  `fix/an-input-that-names-nothing-is-refused` in each,
+  DescentVTT/spec-brief#51, DescentVTT/spec-guard#45 and
+  DescentVTT/spec-graph#77. Each tool names, in its CHANGELOG, the release
+  that first refuses.
 - **Nothing measured is not clean.** A check that inspected nothing - an empty
   scope, a diff that was never read, a base equal to the head - says so, and
   under `--strict` refuses.
