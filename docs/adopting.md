@@ -145,8 +145,12 @@ of the installed file.
 ## CI
 
 Every tool exits `0` when clean, `1` when it found something, and `2` when
-its answer cannot be trusted - a configuration that did not load, a directory
-that does not exist. Treat `2` as a failure of the pipeline, never as a pass.
+its answer cannot be trusted - a configuration that did not load, an unknown
+key, a directory that does not exist, a question it could not decide, an
+output its reader closed before all of it was written, or an error the tool
+did not expect, which it reports on stderr as `<tool>: unexpected error:`
+with its stack ([ADR-0005](adr/0005-the-family-contract.md#runs)). Treat `2`
+as a failure of the pipeline, never as a pass.
 
 Each tool writes its findings in the forge's own format:
 
@@ -255,7 +259,10 @@ spec:
   spec-harness read git, which the `-slim` and `-alpine` images do not carry.
 - The job ends with the worst code, so `allow_failure: exit_codes: [1]` lets
   findings through while you adopt a tool, and a run that cannot be trusted
-  (`2`) still fails the pipeline.
+  (`2`) still fails the pipeline. It names `1` alone and never `2`: a tool
+  that crashes exits `2` since spec-brief 0.6.0, spec-graph 0.13.0,
+  spec-guard 0.20.0 and spec-harness 0.11.0, where an earlier release left
+  Node's exit `1`, which this setting lets through as findings.
 - GitLab combines several Code Quality reports into one. The merge request's
   Code Quality widget is in every tier, Free included, and compares the merge
   request's report with one from the **target branch's** latest pipeline: the

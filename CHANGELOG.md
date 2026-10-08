@@ -31,6 +31,13 @@ copies a module names the spec-core commit in its own changelog.
   empty npm's cache of fetched commands there: the `_npx` directory below
   the path `npm config get cache` prints.
 
+### Documentation
+
+- The adopting guide lists what exit `2` covers as ADR-0005 has it since
+  2026-10-08, an error a tool did not expect and an output its reader closed
+  among them, and says why its GitLab job lets exit `1` through and never
+  `2`. ADR-0005 records the one line each tool prints for a closed output.
+
 ### Changed since 7e41240
 
 What the tools that copied 7e41240 - all four - see when they copy again.
