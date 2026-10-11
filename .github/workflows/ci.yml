@@ -81,7 +81,9 @@ jobs:
   mutation-shard:
     name: mutation (shard ${{ matrix.shard }} of ${{ strategy.job-total }})
     runs-on: ubuntu-24.04
-    # Headroom for a bad runner, not a budget: the shards took 2 to 9 minutes.
+    # Headroom for a bad runner, not a budget: the shards took 2 to 9 minutes,
+    # and 3 to 6.5 in the first sweep that ran a mutant's quickest test files
+    # first.
     # A shard that keeps passing 15 means the table in
     # scripts/mutation-shards.mjs needs re-measuring, not this number raising.
     timeout-minutes: 30

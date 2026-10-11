@@ -64,14 +64,17 @@ import { calculateMutationTestMetrics } from 'mutation-testing-metrics';
 // shard did not report, and types.ts has none, so it stays in the last shard.
 // When a shard passes the others by more than runner variance, re-measure and
 // move files or add a shard, and add it to the workflow's matrix, which a test
-// checks. Minutes in six shards:
+// checks. Minutes in six shards, on their mutants: in run 36679639631, and
+// in run 38112575026, the first with a mutant's quickest test files first
+// (ADR-0007, 2026-10-11), which left links.ts the slowest and the table as
+// it was:
 export const ASSIGNED = [
-  ['src/markdown/links.ts'], // 7.7
-  ['src/pattern/automaton.ts', 'src/text/lines.ts'], // 6.2
-  ['src/pattern/glob.ts', 'src/markdown/syntax.ts'], // 4.5
-  ['src/pattern/charset.ts', 'src/markdown/scan.ts'], // 5.6
-  ['src/pattern/regex.ts', 'src/markdown/tables.ts'], // 3.5
-]; // and the rest: 4.8
+  ['src/markdown/links.ts'], // 7.7, then 5.5
+  ['src/pattern/automaton.ts', 'src/text/lines.ts'], // 6.2, then 4.8
+  ['src/pattern/glob.ts', 'src/markdown/syntax.ts'], // 4.5, then 3.1
+  ['src/pattern/charset.ts', 'src/markdown/scan.ts'], // 5.6, then 4.2
+  ['src/pattern/regex.ts', 'src/markdown/tables.ts'], // 3.5, then 2.4
+]; // and the rest: 4.8, then 2.8
 
 export const SHARD_COUNT = ASSIGNED.length + 1;
 

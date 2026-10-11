@@ -36,6 +36,12 @@ still the gate on every pull request and every push to main, over every
 mutant, with the same `timeoutMS` and `break` and every test but the merge's
 own, which reach nothing under `src/`; `npm run test:mutation` still runs it
 in one process. The record below has the measurements.
+*Amended 2026-10-11*: in the sweep a mutant's test files run the quickest
+first, where vitest runs the longest first (`vitest.mutation.config.ts`).
+Stryker runs them one after another and stops at the first failure, so the
+order decides what a kill costs and, for a mutant that some input never lets
+end, whether it is a kill or a timeout. No test leaves the sweep, and
+`npm test` keeps vitest's order. The record below has the measurements.
 
 **Thresholds are measurements, never targets.** The first full sweep sets the
 `break` a little under what it measured; it moves up with the measurement and
@@ -424,3 +430,173 @@ nine that had timed out finished and survived. Those nine are its 0.16
 points under main, and what two sweeps of one source differ by.
 **The `break` stays 94.5**, and no sweep under vitest 5 is set beside one
 under 4 until that check has passed.
+
+### 2026-10-11: the order a mutant's test files run in
+
+spec-harness found (its ADR-0010, amended 2026-10-09) why its full sweep was
+slow. Stryker's vitest runner runs a mutant's test files one after another
+in one worker and stops at the first test that fails; vitest's own order
+runs first a file that failed when the worker last ran it, then the
+longest; and a static mutant, which runs every file, waited for the long
+ones before the unit test that kills it. With the quickest first that
+sweep's files took 95 minutes where they had taken 183. That the same
+order cost this sweep was inferred there, and measured here.
+
+**Before.** Five sweeps of one source, the same tests and configuration,
+each on a push to main; 0875f99 differs from the four before it in the
+version of a development dependency's types. A mutant is killed late when
+it had completed more tests than its killer's file holds for it up to the
+killer, so another file had run to its end first. A timeout is on the
+clock when Stryker waited it out and replaced the worker, and at the hit
+limit when the mutant's own count stopped a loop at once:
+
+| Commit | Run | Six jobs | Slowest | Killed | Late | On the clock | At the hit limit | Survived | Score |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| dff37b7 | 37657549289 | 36m40s | 8m28s | 5,116 | 206 | 70 | 150 | 203 | 96.21% |
+| 202f5aa | 37695318839 | 35m00s | 8m44s | 5,107 | 209 | 83 | 149 | 200 | 96.27% |
+| bef676d | 37788070125 | 35m49s | 9m03s | 5,113 | 218 | 80 | 151 | 195 | 96.36% |
+| cb635e4 | 37830477190 | 31m28s | 8m07s | 5,115 | 198 | 76 | 149 | 199 | 96.29% |
+| 0875f99 | 38111312265 | 33m14s | 7m19s | 5,103 | 200 | 83 | 150 | 203 | 96.21% |
+
+The static mutants are not where this sweep's minutes are. There are 226 of
+them, and in the sweep of cb635e4 they took 2.0 of the 26.7 minutes the six
+shards spent on mutants, by `scripts/mutation-timeline.mjs`; in
+spec-harness's they were three quarters.
+
+One killed mutant in twenty-five was killed late. The long files are
+`tests/markdown/linear.test.ts`, `tests/pattern/oracle.test.ts` and
+`tests/markdown/properties.test.ts`: four fifths of the suite's time, and
+the first to fail for one killed mutant in twenty. The tests completed
+ahead of a late killer's file add up to whole files, and where they add up
+in one way only, a long file was among them for two in three: 41 of 62 in
+the sweep of cb635e4.
+
+Stryker's reports carry no times. To price a mutant, each test's time was
+taken from serial runs of the suite and scaled to each shard's initial
+run, and a timeout on the clock was taken at Stryker's own sum: one and a
+half times its tests' time, the five seconds of `timeoutMS` and the
+initial run's overhead. By that pricing, of the worker-seconds the shards
+spent on mutants, the files ahead of late killers were between 4% and 19%,
+the least and the most the tests completed could have cost; the survivors
+9% to 11%; and the timeouts on the clock 23% to 31%. What is left is what a
+run costs before its first test, a third of a second to a second each. So
+the files ahead came to between one and five of the 31 to 37 minutes, and
+two sweeps of one source differ by as much.
+
+**What else the order decides.** 49 of the 5,546 mutants differ between
+those five sweeps, and 31 of them were killed in one and timed out on the
+clock in another. The two regular expressions of `posix.ts` have seven
+static mutants, each killed by a test of `tests/path.test.ts`, a file of
+milliseconds that vitest's order runs among the last. In the sweep of
+bef676d two of them had completed 828 of the 888 tests when it killed
+them; in the sweep of 202f5aa all seven ran out the clock. The last
+shard, which holds them, took 3m32s with three timeouts on the clock and
+6m33s with twenty. Ten more mutants survived in one sweep and timed out
+in another, as the entries above have it, and one mutant of a buffer the
+glob matcher empties before it reads, equivalent by the comment at the
+code, was killed once in five by the check that matching takes time linear
+in the path: a test of cost, on a clock.
+
+A mutant that times out records no test, so how many of the 70 to 83 an
+assertion would kill if its file ran first could not be read off a report.
+
+**The order.** `vitest.mutation.config.ts` gives the sweep an order of its
+own, in every shard and in the one-process run alike: a file that failed
+when the worker last ran it first, as vitest has it, then the quickest
+first, and a file with no time yet after those. No test leaves the run and
+none is added: a mutant survives when every file has passed, in any order.
+
+It differs from spec-harness's in what a file with no time does. There it
+runs the smaller first, and the largest file is the longest. Here size is
+no guide to time: the seven largest files of the sweep are unit tests that
+take about a second between them and are the first to fail for three killed
+mutants in four, and none of the three long files is among the ten
+largest. So a file with no time runs after the timed ones the larger first,
+as vitest has it, and a worker that has timed nothing runs its files as
+vitest would.
+
+`tests/mutation-shards.test.ts` holds the order, the keys it reads vitest's
+cache by, since a key vitest stopped using would find nothing and leave
+every file untimed, and `npm test` to vitest's own order. Twenty-three
+mutants of it, made by hand, each failed that file.
+`scripts/mutation-timeline.mjs` prints the mutants killed late and the
+timeouts on the clock beside each file's minutes, so the next measurement
+reads them off a report.
+
+**After.** The pull request that brought the order swept 0875f99's source
+beside main's own sweep of it (9d528a7, run 38112575026):
+
+| | Five sweeps in vitest's order | The quickest first, run 38112575026 |
+| --- | ---: | ---: |
+| Shard 1, `links.ts` | 7m19s to 9m03s | 6m25s |
+| Shard 2 | 5m54s to 7m53s | 5m52s |
+| Shard 3 | 4m04s to 5m29s | 3m47s |
+| Shard 4 | 3m52s to 6m57s | 4m59s |
+| Shard 5 | 2m57s to 4m09s | 3m04s |
+| Shard 6 | 3m32s to 6m33s | 3m23s |
+| The six jobs | 31m28s to 36m40s | 27m30s |
+| Their mutants, after each initial run | 27m39s to 32m33s | 23m50s |
+| The six initial runs, net | 105 to 118 s | 111 s |
+| Killed | 5,103 to 5,116 | 5,121 |
+| Killed late | 198 to 218 | 159 |
+| Timed out on the clock | 70 to 83 | 72 |
+| Static mutants among those | 1 to 16 | 0 |
+| At the hit limit | 149 to 151 | 150 |
+| Survived | 195 to 203 | 196 |
+| Without coverage | 7 | 7 |
+| Score | 96.21% to 96.36% | 96.34% |
+
+The mutants are the same 5,546 in all six sweeps. Of the 31 that had been
+killed in one sweep and timed out on the clock in another, 30 were killed
+and one timed out. The three long files were the first to fail for 7
+killed mutants, where they had been for 223 to 272: they had failed first
+because they ran first. Where the tests completed ahead of a late killer
+add up in one way only, a long file was among them for 8 of 49, and by the
+pricing above the files ahead were between 1% and 11% of the
+worker-seconds. Six mutants got a verdict no sweep before had given them,
+each still detected: two that had always run out the clock and one that
+had always stopped at the hit limit were killed by a test of their own
+unit file, after one, two and eight tests; and three that an assertion
+had always killed within four tests ran a quicker file first and never
+ended there, two of them on the clock and one at the hit limit.
+
+No mutant survived that had not survived before. The sweep's 196
+survivors all survive in main's sweep of 0875f99, which has seven more,
+and each of the seven timed out on the clock here as it had in at least
+one of the four sweeps before that: they are among the ten that change
+sides from sweep to sweep. With every timeout lost the sweep would read 92.34%, where the
+five read 92.01% to 92.25%.
+
+This is one sweep. Shards 1, 2, 3 and 6 took less than in any of the five
+before, shards 4 and 5 what they had taken, on runners no faster by their
+initial runs, and the six jobs took four minutes less than the quickest of
+the five and seven less than their mean. The timeouts on the clock are
+where the minutes still are, a third of the worker-seconds by the same
+pricing, and this sweep does not show the order making them fewer.
+
+**A second sweep.** The commit that added this record was swept in the same
+order (e88097b, run 38116771674). Its six jobs took 20m49s, each between
+2m48s and 3m57s, with `links.ts`'s still the slowest. It read 5,119 killed,
+172 of them late, 61 timeouts on the clock, none of them a static mutant's,
+154 at the hit limit, 205 survivors and 7 without coverage: 96.18%, and
+92.30% with every timeout lost. No mutant survived that had not survived in
+a sweep before. Its score is the lowest of the seven sweeps and its
+survivors the most, by the mutants that change sides from sweep to sweep:
+the ten that survive in one and run out the clock in another all finished
+and survived. Four mutants got a verdict no sweep had given them, each
+still detected: two that had always run out the clock stopped at the hit
+limit, and two that an assertion had always killed did not end, one on the
+clock and one at the hit limit.
+
+So the two sweeps in the order read 96.34% and 96.18%, where the five
+before read 96.21% to 96.36%; their jobs took 27m30s and 20m49s, where
+those took 31m28s to 36m40s; and they had 72 and 61 timeouts on the clock,
+where those had 70 to 83. Two sweeps of one source in one order differ by
+seven minutes, so the minutes above are a direction and not a figure.
+
+**The table stays.** `links.ts` cannot be split and its shard is still the
+slowest, and the other five took 3m04s to 5m52s beside its 6m25s.
+`scripts/mutation-shards.mjs` and the workflow state the minutes of this
+sweep.
+
+**The `break` stays 94.5.**
