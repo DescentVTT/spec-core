@@ -19,7 +19,9 @@ export default {
 
   // CI runs the sweep in shards (scripts/mutation-shards.mjs), and the merge
   // takes them as one sweep only if each ran every test: with `related` on,
-  // which tests run would depend on the files a shard holds.
+  // which tests run would depend on the files a shard holds. The configuration
+  // file also gives a mutant's test files their order, the quickest first, and
+  // says why.
   vitest: { configFile: 'vitest.mutation.config.ts', related: false },
   coverageAnalysis: 'perTest',
   mutate: ['src/**/*.ts', '!src/**/index.ts'],

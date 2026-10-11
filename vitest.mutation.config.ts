@@ -1,13 +1,62 @@
+import { relative } from 'node:path';
+
 import { defineConfig } from 'vitest/config';
+import { BaseSequencer, type TestSpecification } from 'vitest/node';
+
+/**
+ * The order a mutant's test files run in: a file that failed when the worker
+ * last ran it first, as vitest has it, then the quickest first, where vitest
+ * runs the longest first.
+ *
+ * Stryker gives a mutant the files of the tests that cover it, every file for
+ * a static mutant, runs them one after another in one worker and stops at the
+ * first test that fails. Vitest's order suits a run that reports every failure
+ * and wants its long files started early. Here the long files are
+ * `tests/markdown/linear.test.ts`, `tests/pattern/oracle.test.ts` and
+ * `tests/markdown/properties.test.ts`, four fifths of the suite's time between
+ * them, and they are the first to fail for one killed mutant in twenty. In
+ * four sweeps of one source, one killed mutant in twenty-five had run other
+ * files to their end before the file that killed it, a long one among them
+ * for two in three of those the reports can tell; a static mutant that the
+ * first test of `tests/path.test.ts` kills, a file of milliseconds, had run
+ * 827 tests before it; and a mutant killed late is one that can run out its
+ * clock first: 21 mutants were killed in one of those sweeps and timed out in
+ * another (ADR-0007, 2026-10-11).
+ *
+ * No test leaves the run and none is added: a mutant survives when every file
+ * has passed, in any order.
+ *
+ * A file the worker has not run yet has no time to go by, and its size is no
+ * guide to one here: the seven largest files are unit tests that take about a
+ * second between them and are the first to fail for three killed mutants in
+ * four, and none of the three long ones is among the ten largest. It runs
+ * after the files that have a time, the larger first, as vitest has it, and
+ * has a time from then on.
+ */
+export class QuickestFirst extends BaseSequencer {
+  override async sort(files: TestSpecification[]): Promise<TestSpecification[]> {
+    const { cache, config } = this.ctx;
+    const rank = (file: TestSpecification): [number, number] => {
+      // The key vitest's own sequencer reads its cache by; a test holds the two together.
+      const key = `${file.project.name}:${relative(config.root, file.moduleId).replaceAll('\\', '/')}`;
+      const last = cache.getFileTestResults(key);
+      if (last === undefined) return [2, -(cache.getFileStats(key)?.size ?? 0)];
+      return [last.failed ? 0 : 1, last.duration];
+    };
+    const ranked = files.map((file) => ({ file, rank: rank(file) }));
+    return ranked.sort((a, b) => a.rank[0] - b.rank[0] || a.rank[1] - b.rank[1]).map(({ file }) => file);
+  }
+}
 
 /**
  * The suite as Stryker runs it: the one vitest.config.ts runs, less one file,
- * and without v8 coverage, which Stryker replaces with its own per test.
+ * without v8 coverage, which Stryker replaces with its own per test, and in
+ * the order above.
  *
  * mutation-shards.test.ts tests the CI script that splits the sweep and
- * merges it back. It reaches nothing under src/, so it cannot kill a mutant,
- * and every static mutant runs the whole suite. A test holds the rest of this
- * file to vitest.config.ts.
+ * merges it back, and the order above. It reaches nothing under src/, so it
+ * cannot kill a mutant, and every static mutant runs the whole suite. A test
+ * holds the rest of this file to vitest.config.ts.
  */
 export default defineConfig({
   test: {
@@ -15,5 +64,6 @@ export default defineConfig({
     exclude: ['tests/mutation-shards.test.ts', '**/node_modules/**'],
     environment: 'node',
     testTimeout: 60_000,
+    sequence: { sequencer: QuickestFirst },
   },
 });

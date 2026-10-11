@@ -17,6 +17,14 @@
  *
  * Works on one shard's log and report as well as on a whole sweep's.
  *
+ * A mutant's test files run one after another until a test fails, so what a
+ * killed mutant costs is the files that run before its killer's, and what a
+ * mutant that times out on the clock costs is its timeout and the worker with
+ * it. The last two columns count both: of each file's mutants, those killed
+ * only after another test file had run to its end, and those that timed out
+ * on the clock rather than at the hit limit, which stops a loop at once
+ * (ADR-0007, 2026-10-11).
+ *
  *   gh run view <run> --job <job> --log > sweep.log
  *   node scripts/mutation-timeline.mjs <report: mutation.json or index.html> sweep.log
  *
@@ -60,6 +68,29 @@ function readReport(file) {
 }
 
 const report = readReport(reportFile);
+
+// Where each test stands in its file. Stryker gives a mutant the files of the
+// tests that cover it, filtered by a pattern of those tests' names, and a
+// static mutant every test; the report says how many tests had completed. A
+// mutant was killed late when that is more than its killer's file holds for
+// it up to the killer.
+const tests = new Map();
+const testsIn = new Map();
+for (const [file, entry] of Object.entries(report.testFiles ?? {})) {
+  testsIn.set(file, entry.tests);
+  entry.tests.forEach((test, index) => tests.set(test.id, { file, index, name: test.name }));
+}
+const literal = (name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function killedLate(m) {
+  const killer = m.status === 'Killed' ? tests.get(m.killedBy?.[0]) : undefined;
+  if (killer === undefined || m.testsCompleted === undefined) return false;
+  if (m.static || !m.coveredBy?.length) return m.testsCompleted > killer.index + 1;
+  const covering = new RegExp(m.coveredBy.map((id) => literal(tests.get(id)?.name ?? '')).join('|'));
+  const ahead = testsIn.get(killer.file).filter((test, index) => index <= killer.index && covering.test(test.name));
+  return m.testsCompleted > ahead.length;
+}
+const onTheClock = (m) => m.status === 'Timeout' && !m.statusReason?.startsWith('Hit limit');
+
 const files = Object.keys(report.files)
   .sort()
   .map((name) => {
@@ -71,6 +102,8 @@ const files = Object.keys(report.files)
       runtime: tested.filter((m) => !m.static).length,
       static: tested.filter((m) => m.static).length,
       timeouts: mutants.filter((m) => m.status === 'Timeout').length,
+      late: mutants.filter(killedLate).length,
+      clock: mutants.filter(onTheClock).length,
     };
   });
 
@@ -123,6 +156,8 @@ const rows = files.map((file) => {
     runtime: span(runtimeCursor, runtimeCursor + file.runtime, 'seconds'),
     static: span(staticCursor, staticCursor + file.static, 'seconds'),
     timeouts: file.timeouts,
+    late: file.late,
+    clock: file.clock,
     counted: (span(runtimeCursor, runtimeCursor + file.runtime, 'timeouts') ?? 0) + (span(staticCursor, staticCursor + file.static, 'timeouts') ?? 0),
   };
   runtimeCursor += file.runtime;
@@ -132,12 +167,13 @@ const rows = files.map((file) => {
 
 const minutes = (seconds) => (seconds === undefined ? '?' : (seconds / 60).toFixed(1));
 const width = Math.max(4, ...rows.map((row) => row.name.length));
-console.log(`${'file'.padEnd(width)}  mutants  minutes (runtime + static)  timeouts: report / counted`);
+console.log(`${'file'.padEnd(width)}  mutants  minutes (runtime + static)  timeouts: report / counted  killed late  on the clock`);
 for (const row of rows) {
   const sum = row.runtime === undefined || row.static === undefined ? undefined : row.runtime + row.static;
   console.log(
     `${row.name.padEnd(width)}  ${String(row.mutants).padStart(7)}  ${minutes(sum).padStart(5)} (${minutes(row.runtime)} + ${minutes(row.static)})`.padEnd(width + 38) +
-      `${String(row.timeouts).padStart(4)} / ${row.counted}`,
+      `${String(row.timeouts).padStart(4)} / ${row.counted}`.padEnd(29) +
+      `${String(row.late).padStart(11)}  ${String(row.clock).padStart(12)}`,
   );
 }
 console.log(`\nthe whole sweep: ${minutes(points.at(-1).seconds - points[0].seconds)} minutes from the first progress line`);
