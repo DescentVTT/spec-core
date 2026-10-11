@@ -45,7 +45,11 @@ to main, and applies the `break` once, to the merged report
 (`scripts/mutation-shards.mjs`); a shard is not a score. A file added under
 `src/` lands in the last shard. When a shard passes the others by more than
 runner variance, re-measure with `scripts/mutation-timeline.mjs` and move
-files in the table there.
+files in the table there. A mutant's test files run the quickest first in
+the sweep (`vitest.mutation.config.ts`). A mutant that survives still runs
+every test that covers it, and one that runs out its clock waits half as
+long again as those tests take, so time added to a test is paid by each of
+those in every sweep.
 
 Vitest stays on 4 while Stryker's runner runs no test against a mutant on 5,
 where the sweep reads 4%: Dependabot proposes no major of it,

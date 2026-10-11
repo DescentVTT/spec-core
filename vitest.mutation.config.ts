@@ -14,24 +14,27 @@ import { BaseSequencer, type TestSpecification } from 'vitest/node';
  * and wants its long files started early. Here the long files are
  * `tests/markdown/linear.test.ts`, `tests/pattern/oracle.test.ts` and
  * `tests/markdown/properties.test.ts`, four fifths of the suite's time between
- * them, and they are the first to fail for one killed mutant in twenty. In
- * four sweeps of one source, one killed mutant in twenty-five had run other
- * files to their end before the file that killed it, a long one among them
- * for two in three of those the reports can tell; a static mutant that the
- * first test of `tests/path.test.ts` kills, a file of milliseconds, had run
- * 827 tests before it; and a mutant killed late is one that can run out its
- * clock first: 21 mutants were killed in one of those sweeps and timed out in
- * another (ADR-0007, 2026-10-11).
+ * them, and in vitest's order they were the first to fail for one killed
+ * mutant in twenty. In five sweeps of one source, one killed mutant in
+ * twenty-five had run other files to their end before the file that killed
+ * it, a long one among them for two in three of those the reports can tell; a
+ * static mutant that the first test of `tests/path.test.ts` kills, a file of
+ * milliseconds, had run 827 tests before it; and a mutant killed late is one
+ * that can run out its clock first: 31 mutants were killed in one of those
+ * sweeps and timed out in another (ADR-0007, 2026-10-11).
  *
  * No test leaves the run and none is added: a mutant survives when every file
- * has passed, in any order.
+ * has passed, in any order. The first sweep in this order read 96.34% over the
+ * same 5,546 mutants, with no survivor the five before it had not had and 30
+ * of those 31 killed, and its six jobs took 27m30s where theirs had taken
+ * 31m28s to 36m40s.
  *
- * A file the worker has not run yet has no time to go by, and its size is no
- * guide to one here: the seven largest files are unit tests that take about a
- * second between them and are the first to fail for three killed mutants in
- * four, and none of the three long ones is among the ten largest. It runs
- * after the files that have a time, the larger first, as vitest has it, and
- * has a time from then on.
+ * A file with no time yet has none to go by, and its size is no guide to one
+ * here: the seven largest files are unit tests that take about a second
+ * between them and are the first to fail for three killed mutants in four,
+ * and none of the three long ones is among the ten largest. It runs after the
+ * files that have a time, the larger first, as vitest has it, and has a time
+ * from then on.
  */
 export class QuickestFirst extends BaseSequencer {
   override async sort(files: TestSpecification[]): Promise<TestSpecification[]> {
