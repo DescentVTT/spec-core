@@ -163,6 +163,52 @@ tool's CLAUDE.md can point.
   DescentVTT/spec-brief#51, DescentVTT/spec-guard#45 and
   DescentVTT/spec-graph#77. Each tool names, in its CHANGELOG, the release
   that first refuses.
+
+  *Amended 2026-10-11*: three readings of that rule, from the releases
+  that followed it.
+
+  **A pattern among several that matches no file is refused.** A list that
+  names nothing was refused; a list one of whose entries names nothing was
+  read as the rest. spec-guard 0.21.0, given `docs/**/*.md` beside the
+  pattern of a directory since renamed, ran the rules under `docs` and
+  reported that every assertion held: the rules of the other directory had
+  stopped running, and nothing said so. From 0.22.0 a run, `prove`,
+  `impact` and `query` refuse each such pattern by name, exit `2`;
+  `--allow-empty` lets a run, `prove` and `impact` through, and the pattern
+  is still named; a session that waits for files, `--watch` and the
+  server, carries on and says which pattern it is; and a document a script
+  reads carries the patterns (DescentVTT/spec-guard#48). spec-graph says a
+  `--family` that has no document, beside ones that have, with a note, and
+  goes on; spec-guard's `cites` reads a pattern that matches nothing as it
+  did. Whether those two refuse is not decided here.
+
+  **An option is refused where taking it would say what is not so.**
+  `init --strict` tells its reader that something was strict, and
+  `init --config team.json` that a configuration was written there; each
+  ran as the line without it does, and each is refused, as an option that
+  means nothing to a command is in the other three tools. An option that
+  asks a command to leave out what it never does asks for what is already
+  so, and is taken: `--no-color` by a command that prints none, and by
+  spec-brief's `init` `--no-git` and `--no-config`, since it asks git
+  nothing and opens no configuration. A script passes such an option to
+  every command it runs. Two things of which one would go unread are
+  refused together: `--config` beside `--no-config`, and an argument beside
+  the option that names the same thing (DescentVTT/spec-brief#55,
+  DescentVTT/spec-harness#80).
+
+  **`FORCE_COLOR=false` is off.** The list above had `FORCE_COLOR=0` off
+  and any other value on, and `false` forced colour in spec-brief,
+  spec-graph and spec-guard, into a pipe too. It is off for exactly `0` and
+  exactly `false`, on a terminal too; empty is as unset; any other value
+  forces colour (DescentVTT/spec-brief#55, DescentVTT/spec-graph#81,
+  DescentVTT/spec-guard#48). That is not Node's reading, and is not meant
+  to be. On Node 24.18.1 `getColorDepth` gives colour for `1`, `true`, `2`,
+  `3` and the empty string, and none for any other value, `FALSE`, `no`
+  and `yes` among them; and with `FORCE_COLOR=1` beside `NO_COLOR=1` it
+  gives colour. The family keeps `NO_COLOR` first, an empty value as unset
+  and a value it does not know as a request for colour, and takes from
+  Node and from `supports-color` the one spelling of off that both read and
+  it did not.
 - **Nothing measured is not clean.** A check that inspected nothing - an empty
   scope, a diff that was never read, a base equal to the head - says so, and
   under `--strict` refuses.
