@@ -574,6 +574,26 @@ the five and seven less than their mean. The timeouts on the clock are
 where the minutes still are, a third of the worker-seconds by the same
 pricing, and this sweep does not show the order making them fewer.
 
+**A second sweep.** The commit that added this record was swept in the same
+order (e88097b, run 38116771674). Its six jobs took 20m49s, each between
+2m48s and 3m57s, with `links.ts`'s still the slowest. It read 5,119 killed,
+172 of them late, 61 timeouts on the clock, none of them a static mutant's,
+154 at the hit limit, 205 survivors and 7 without coverage: 96.18%, and
+92.30% with every timeout lost. No mutant survived that had not survived in
+a sweep before. Its score is the lowest of the seven sweeps and its
+survivors the most, by the mutants that change sides from sweep to sweep:
+the ten that survive in one and run out the clock in another all finished
+and survived. Four mutants got a verdict no sweep had given them, each
+still detected: two that had always run out the clock stopped at the hit
+limit, and two that an assertion had always killed did not end, one on the
+clock and one at the hit limit.
+
+So the two sweeps in the order read 96.34% and 96.18%, where the five
+before read 96.21% to 96.36%; their jobs took 27m30s and 20m49s, where
+those took 31m28s to 36m40s; and they had 72 and 61 timeouts on the clock,
+where those had 70 to 83. Two sweeps of one source in one order differ by
+seven minutes, so the minutes above are a direction and not a figure.
+
 **The table stays.** `links.ts` cannot be split and its shard is still the
 slowest, and the other five took 3m04s to 5m52s beside its 6m25s.
 `scripts/mutation-shards.mjs` and the workflow state the minutes of this
