@@ -241,6 +241,32 @@ tool's CLAUDE.md can point.
   has the sources as read. spec-graph read it so already, and spec-guard
   does from 0.23.0 (DescentVTT/spec-guard#52). It is `TERM=dumb`, for
   colour, that the tools still read.
+
+  *Amended 2026-10-12*, from the releases after those:
+
+  **A list of families that mistypes one is refused, and a name before its
+  first document is not.** What was left undecided of spec-graph's
+  `--family` is decided, and not as a pattern is. A citation of a family
+  no document here belongs to is prose to spec-graph, with a list or
+  without one, so a name on the list that has no document costs the check
+  nothing by itself: a family listed before its first document, and a run
+  over part of a repository with the whole list, read what they would read
+  with no list, and are said in a note as before. The list costs a finding
+  where it also leaves out a family the documents do belong to, `RFCS`
+  written for `RFC`: the same corpus is exit `1` with no list and was exit
+  `0` with that one. There the check stops, exit `2`, and names both, from
+  0.15.0 (DescentVTT/spec-graph#86). A refusal follows what an input
+  costs the answer, not only that it names nothing.
+
+  **The marks of a report are asked for one way.** `--ascii` draws the
+  ASCII marks and `--no-ascii` the others, on any platform, in spec-graph
+  and spec-guard; either wins over the tool's variable
+  (`SPEC_GRAPH_ASCII`, `SPEC_GUARD_ASCII`: off for empty, `0` and `false`,
+  and asking for ASCII only), which wins over what the terminal says of
+  itself. A command that draws no mark takes `--ascii`, which is true of
+  what it writes, and refuses `--no-ascii`, which is not, as each takes
+  `--no-color` and refuses `--color`; the two together are refused
+  (DescentVTT/spec-graph#85, DescentVTT/spec-guard#55).
 - **Nothing measured is not clean.** A check that inspected nothing - an empty
   scope, a diff that was never read, a base equal to the head - says so, and
   under `--strict` refuses.
