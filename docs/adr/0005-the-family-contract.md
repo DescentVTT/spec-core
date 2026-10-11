@@ -209,6 +209,38 @@ tool's CLAUDE.md can point.
   and a value it does not know as a request for colour, and takes from
   Node and from `supports-color` the one spelling of off that both read and
   it did not.
+
+  *Amended again 2026-10-11*, from the releases after those:
+
+  **`cites` names such a pattern, and a strict check fails for it.** What
+  was left undecided above is decided for spec-guard's `cites`: from 0.23.0
+  it names a pattern that matches no file beside others that do, on stderr
+  and in the document a script reads, and under `--strict` exits `1` where
+  its families are read off the specs, as it does there when no pattern
+  matched at all. Each pattern is held to what the list is held to, by the
+  command's own rule: where `cites` is given its families by name, no spec
+  at all is no failure, and one pattern of several is named and no more
+  (DescentVTT/spec-guard#51). spec-graph's `--family` is as it was.
+
+  **A hook says what is wrong with its own line with `1`.** "A hook is no
+  exception", above, is said of a write the guard could not check, and
+  stands. What is wrong with the line that starts Claude Code's hook - a
+  line it cannot read, a `--root` on it that is no directory - is one line
+  on stderr and exit `1`, and holds no write. That line is in a settings
+  file, and `2` from it holds every write of the session, the one that
+  mends the line among them (DescentVTT/spec-harness#80,
+  DescentVTT/spec-harness#84). A brief the line names that is not one is a
+  write the guard cannot check, and is `2` as before.
+
+  **`TERM` is no sign of a terminal that draws.** A tool whose report has
+  marks beyond ASCII draws them on Windows where `WT_SESSION` or
+  `TERM_PROGRAM` is set to something, and in ASCII otherwise; `TERM` decides
+  nothing there. Git for Windows sets it for everything it starts, and the
+  Cygwin and MSYS2 runtimes for every program built on them, by the version
+  of Windows and not by what the output is drawn on; spec-guard's ADR-0014
+  has the sources as read. spec-graph read it so already, and spec-guard
+  does from 0.23.0 (DescentVTT/spec-guard#52). It is `TERM=dumb`, for
+  colour, that the tools still read.
 - **Nothing measured is not clean.** A check that inspected nothing - an empty
   scope, a diff that was never read, a base equal to the head - says so, and
   under `--strict` refuses.
