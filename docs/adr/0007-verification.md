@@ -42,6 +42,18 @@ Stryker runs them one after another and stops at the first failure, so the
 order decides what a kill costs and, for a mutant that some input never lets
 end, whether it is a kill or a timeout. No test leaves the sweep, and
 `npm test` keeps vitest's order. The record below has the measurements.
+*Amended 2026-10-12*: nothing a mutator reads stands under a TypeScript `as`.
+Stryker makes no mutant of what stands under one, and no report says so. So
+a lookup that cannot miss is written `x!`, a cast is put on a name, and a
+type is said on the declaration or with `satisfies`.
+`scripts/mutation-unmeasured.mjs` counts the places a mutator would have
+applied under a cast, `tests/mutation-unmeasured.test.ts` holds the tree to
+that count on every change, and the sweep's merge job holds the merged
+report to it. And a static mutant that survives is written into the source
+by hand before it is read as a survivor: under one that stops a test file
+loading no test fails, and Stryker counts no failure as survived. Such a
+mutant is killed by a test that loads the smallest thing that still meets
+it and fails in a test's body. The record below has the measurements.
 
 **Thresholds are measurements, never targets.** The first full sweep sets the
 `break` a little under what it measured; it moves up with the measurement and
@@ -600,3 +612,166 @@ slowest, and the other five took 3m04s to 5m52s beside its 6m25s.
 sweep.
 
 **The `break` stays 94.5.**
+
+### 2026-10-12: nothing the sweep reads stands under an `as`
+
+Stryker 10.0.0 makes no mutant of anything that stands under a TypeScript
+`as` expression. Read from its source: `shouldSkip` in the instrumenter's
+`dist/src/transformers/babel-transformer.js` asks `isTypeNode`, whose list
+in `dist/src/util/syntax-helpers.js` holds `TSAsExpression`, and a node on
+that list is passed over with everything beneath it. `TSEnumDeclaration` is
+on it too; `satisfies`, `!` and a call are not. So the `x + 1` of
+`ends.space[x + 1] as number` was never mutated, and no report said so: a
+mutant that was never made is in no column, and a score is of the mutants
+there are. The four tools found it in their own sources (spec-guard's
+ADR-0003 and spec-brief's ADR-0009, each amended 2026-10-12), and each
+holds its sources with the script this one is adapted from.
+
+**Measured before changing anything**, on main's sweep of 99f4920 (run
+38176640207, 5,546 mutants), by reading each source the report holds with
+the parser Stryker reads it with: 158 `as` expressions in the sixteen
+files, outermost only; 33 of them over 35 places one of Stryker's mutators
+applies to; and no mutant of the report at any of the 35. A place is not a
+mutant: a mutator makes one to three of each. The tree gave the same
+count.
+
+| File | Places | Beside mutants | What stood under an `as` |
+| --- | ---: | ---: | --- |
+| `links.ts` | 14 | 607 | The tables `endsOf` fills from the right, read one further on (8) and at a destination's start (2); the line above a definition; the line a comment opens on; the line an offset is on; the furthest any pair has read to. |
+| `frontmatter.ts` | 4 | 695 | The line above, where a block's trailing blank lines are taken off; a block's last content line; the last item of a list; the pattern a trailing comment starts at. |
+| `scan.ts` | 4 | 476 | A line's shape; where the paragraph below stops; the innermost open list item, twice. |
+| `regex.ts` | 3 | 851 | The letter of an escape, in a refusal; the last option of an alternation; the stack of states the simulation follows. |
+| `width.ts` | 3 | 43 | The two ends of a run of wide characters, in the bisection. |
+| `mcp.ts` | 2 | 509 | The last argument a tool takes, where an unknown one is refused; the `id` a request is tracked by until it is answered or cancelled. |
+| `lines.ts` | 2 | 185 | Where a line starts, twice. |
+| `headings.ts`, `automaton.ts`, `charset.ts` | 1 each | 198, 277, 116 | The line under a setext heading's text; the last option of an alternation; the characters a witness is spelled with. |
+
+**The rewrite.** Each of the 33 was rewritten so that what a mutator reads
+stands under no `as`:
+
+- 31 read `x!`, where the cast only took `undefined` off a lookup that
+  cannot miss: 29 index reads, a `Map.get`, and the first part of a
+  `split`;
+- 1 has the cast on a name: `(message as { id: RequestId })['id']` for
+  `message['id'] as RequestId`, which leaves the key outside the cast;
+- 1 says its type on the declaration: `READABLE: readonly number[]`, where
+  `as const` stood over the list.
+
+No `as` is left with a place under it. The 126 the sources still have
+stand over a name, a property, a call that is given names, or an index
+read by one of those or by a number: nothing a mutator applies to.
+
+**Nothing a tool compiles changed.** Every module here is copied into the
+tools, so the rewrite was held to the output of the build: `dist` has the
+same 22 declaration files and the same 22 modules, each byte for byte what
+it was. A cast, a `!` and a declared type are all erased, so no tool emits
+anything else either. The types inside a module were checked as well: each
+cast was compiled beside its rewrite, where it stood, against a type that
+is `true` only for two identical types. 32 are identical. One differs,
+and nothing reads the difference: `READABLE` was a tuple of ten literals
+and is a list of numbers, private to `charset.ts` and read once, spread
+into a `number[]`. The same check refuses a `!` on a read that may be
+`null`, which is the mistake it is there for.
+
+Ten files changed, in four modules, and each is copied again into every
+tool that holds its module: `mcp.ts` of `jsonrpc`; `frontmatter.ts`,
+`headings.ts`, `links.ts` and `scan.ts` of `markdown`; `automaton.ts`,
+`charset.ts` and `regex.ts` of `pattern`; `lines.ts` and `width.ts` of
+`text`.
+
+**What holds it.** `scripts/mutation-unmeasured.mjs` is the measurement: it
+counts, under every outermost `as` and in every enum, the nodes one of
+Stryker's mutators applies to, and `LEFT` in it records how many the tree
+is known to keep, which is none.
+
+- The sweep's merge job runs it on the merged report, after the merge has
+  written that, and fails a count above `LEFT`.
+- `tests/mutation-unmeasured.test.ts` runs it on the tree in the ordinary
+  suite, so a cast over an index's arithmetic fails a pull request's tests
+  before its sweep.
+- The same test holds the count to the Stryker installed. Over one source
+  written with every kind of place, Stryker's own instrumenter makes no
+  mutant under a cast; with the casts taken away, each replaced by as many
+  spaces, it mutates exactly the places the script counted, cast by cast.
+  Were the first to fail, Stryker reads under a cast now and the script has
+  nothing left to say; were the second, Stryker has a mutator the script
+  does not know.
+- The script finds the parser from Stryker's instrumenter and not by its
+  name, since npm may hoist another major of `@babel/parser` to the top of
+  `node_modules`. Where the instrumenter's is not installed it measures
+  nothing and fails, naming the package.
+- The test reads `src/` as text and loads the instrumenter, so a mutation
+  run leaves it out, with the test of the shards. It hands the run its
+  report and takes the job summary back in memory: no test here writes to
+  disk.
+- 36 defects put one at a time into the script, the vitest configuration
+  of the sweep, the workflow and two of the rewritten lines each failed that
+  test or the test of the shards. Three of them had passed the test as it
+  came from the tools, and are held here: a key written as a string
+  counted as a place, a type inside the expression read as code, and a
+  mutant of the report beside a cast on its own line read as under it.
+
+**The mutants the casts had hidden.** Stryker's instrumenter, asked about
+each of the ten files as main has it and as the rewrite leaves it, makes
+35 mutants where the casts stood, one at each place: 31 in the arithmetic
+of a lookup, a `+` made `-`, a `-` made `+` or a `*` made `/`, and one each of
+`--top` made `++top`, `/\s#/` made `/\S#/`, `'id'` made `""` and the list
+of readable characters made `[]`. It makes four fewer elsewhere, each a
+statement taken away whole: `reach.push(...)` in `links.ts`,
+`stops.set(...)` in `scan.ts`, and a `throw` and a `this.compile(...)` in
+`regex.ts`, all four killed in main's sweep. Stryker takes a statement away
+only where that would be the statement's one mutant, and each of these
+holds others; with a cast in the statement the instrumenter kept the
+mutant all the same, as spec-guard found in its own sources. So a sweep of
+the rewrite makes 31 mutants more than main's.
+
+Each of the 35 was written into the source by hand and run against the
+tests of its module:
+
+- **30 failed a test that was already there.** The list of readable
+  characters is the one static mutant among the 35, and three tests of
+  `tests/pattern/glob.test.ts` fail for it in their bodies, with every
+  file loaded.
+- **4 did not end.** Three were still running after four minutes, where
+  the tests of their module take under half of one: the stack of the
+  regular-expression simulation counting up, and the tables of ends and
+  the table of line starts read past their ends. The fourth, the walk over
+  a block's trailing blank lines, filled the heap.
+- **1 failed none**: `start + 1` made `start - 1` where a hex escape
+  without its digits is refused (`regex.ts`). The refusal names the
+  escape, `expected 2 hex digits after "\x"`, and the tests held only the
+  words `hex digits`, so the letter could be whatever stands before the
+  backslash. `tests/pattern/regex.test.ts` now holds the message for `\x`
+  and for `\u`, each after other text, and the mutant fails it.
+
+### 2026-10-12: a survivor that is a file that did not load
+
+Stryker counts a failed test, not a test file that failed to load. A
+mutant under which a module throws as it loads takes with it every test
+file that imports the module: none of their tests runs, none fails, and
+where no other test fails the mutant is scored as survived although
+nothing works. spec-harness met one on 2026-10-12, the emptied body of the
+function its tables are built through, and holds it with a test that loads
+that function alone, as spec-guard does; spec-graph imports the module
+whose tables are built at load inside a test, for the same reason.
+
+Such a mutant runs as its module loads, so Stryker marks it static, and it
+is among a sweep's survivors. Main's sweep of 99f4920 (run 38176640207) has
+226 static mutants: 222 killed, each by a test that failed, and 4 that
+survived. Each of the four was already called equivalent by the comment at
+its code: the range of `SEPARATOR` in `charset.ts`, read only for points a
+witness search tries whatever the sets hold, and the three of `NOTHING` in
+`regex.ts`, which fills slots nothing reads. Each was written into the
+source by hand all the same and run against the suite the sweep runs, all
+26 files of it:
+
+| What happened | Mutants |
+| --- | ---: |
+| A test failed | 0 |
+| No test failed, and a file did not load | 0 |
+| Every file loaded and every test passed | 4 |
+
+No survivor here is a file that did not load, and the four are what their
+comments say. The entry above adds one static mutant, the list of readable
+characters, and tests fail for it in their bodies. This repository has no
+function its tables are built through, so there is none to load alone.
