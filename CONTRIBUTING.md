@@ -21,6 +21,12 @@ shards that each mutate their own files against every test, and fails the
 build when the merged score is under the `break` in `stryker.config.mjs`
 (ADR-0007).
 
+Stryker mutates nothing that stands under a TypeScript `as`, so nothing a
+mutator reads is written under one: `lines[at - 1]!` and not
+`lines[at - 1] as string`, a cast on a name, a type on the declaration or
+`satisfies`. `npm test` fails a cast over anything else and names it, and the
+sweep's last job fails for one too (ADR-0007, 2026-10-12).
+
 ## Layout
 
 | Path | What |
@@ -31,6 +37,7 @@ build when the merged score is under the `break` in `stryker.config.mjs`
 | `scripts/vendor.mjs` | Copies modules into a tool and checks a tool's copy. |
 | `scripts/mutation-shards.mjs`, `stryker.shard.config.mjs` | Split CI's mutation sweep into shards, and merge their reports into one score under the gate. |
 | `scripts/mutation-timeline.mjs` | Reads the minutes each file took off a sweep's log, to balance the shards, and counts the mutants killed late and those that timed out on the clock. |
+| `scripts/mutation-unmeasured.mjs` | Counts the places a mutator applies that stand under a TypeScript `as`, in the tree or in a sweep's merged report, and fails a count above the one it records as left. |
 | `docs/adr/` | The decisions, including the family's contract. |
 | `docs/` | The family's shared documentation: adopting the tools, their concepts, a tutorial. |
 

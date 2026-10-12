@@ -51,6 +51,14 @@ every test that covers it, and one that runs out its clock waits half as
 long again as those tests take, so time added to a test is paid by each of
 those in every sweep.
 
+Stryker makes no mutant of what stands under a TypeScript `as`, and no report
+says so. Nothing a mutator reads stands under one: write `x!` for a lookup
+that cannot miss, put the cast on a name, or say the type on the declaration
+or with `satisfies`. `tests/mutation-unmeasured.test.ts` fails a cast over
+anything else, and the sweep's merge job does too
+(`scripts/mutation-unmeasured.mjs`;
+[ADR-0007](docs/adr/0007-verification.md), 2026-10-12).
+
 Vitest stays on 4 while Stryker's runner runs no test against a mutant on 5,
 where the sweep reads 4%: Dependabot proposes no major of it,
 `tests/boundaries.test.ts` fails one made by hand, and
