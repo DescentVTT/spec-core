@@ -267,6 +267,24 @@ tool's CLAUDE.md can point.
   what it writes, and refuses `--no-ascii`, which is not, as each takes
   `--no-color` and refuses `--color`; the two together are refused
   (DescentVTT/spec-graph#85, DescentVTT/spec-guard#55).
+
+  *Amended again 2026-10-12*, from the releases after those:
+
+  **An option beside its own opposite is refused, in every tool that has
+  one.** `--config` beside `--no-config` and `--ascii` beside `--no-ascii`
+  are refused above, and the pairs two of the tools had before those were
+  not. In spec-graph `check --color --no-color` printed without
+  colour and the other order with it; in spec-guard the later of the two
+  won for the colour pair and for each option a configuration can set,
+  `--strict`, `--allow-missing-targets`, `--allow-empty-scope`,
+  `--default-skips`, `--ignore-status` and `--include-specs`. One of the
+  two went unread with no word of it, which is what the rule above
+  refuses. Each pair is exit `2` and one line that names both, in either
+  order, from spec-graph 0.16.0 and spec-guard 0.25.0
+  (DescentVTT/spec-graph#89, DescentVTT/spec-guard#57). spec-brief refused
+  its two pairs already, and spec-harness has no option with an opposite.
+  The same option twice is that option once, and an opposite alone wins
+  over a configuration, the environment and the terminal as before.
 - **Nothing measured is not clean.** A check that inspected nothing - an empty
   scope, a diff that was never read, a base equal to the head - says so, and
   under `--strict` refuses.
