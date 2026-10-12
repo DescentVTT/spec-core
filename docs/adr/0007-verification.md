@@ -744,6 +744,69 @@ tests of its module:
   backslash. `tests/pattern/regex.test.ts` now holds the message for `\x`
   and for `\u`, each after other text, and the mutant fails it.
 
+**The sweeps.** Main's last, a second of the same source by a pull request
+that changed the lockfile alone, and the first of the rewrite, with the
+script, the test of the hex escape and this record less this paragraph
+(9786bcb):
+
+| | Main, run 38176640207 | The same source, run 38187769862 | The rewrite, run 38193952323 |
+| --- | ---: | ---: | ---: |
+| Mutants | 5,546 | 5,546 | 5,577 |
+| Killed | 5,120 | 5,120 | 5,148 |
+| Timed out | 220 | 215 | 225 |
+| Survived | 199 | 204 | 197 |
+| No coverage | 7 | 7 | 7 |
+| Score | 96.29% | 96.20% | 96.34% |
+| Static mutants | 226 | 226 | 227 |
+| Places under an `as` | 35 | 35 | 0 |
+| Tests | 888 | 888 | 891 |
+
+Paired mutant for mutant, 5,542 of main's 5,546 are in the sweep of the
+rewrite, the four that are not are the statements above, and the 35 it
+made are the ones the instrumenter had named. It killed 33 of them and
+timed out on two: the walk that fills the heap and the stack counting up.
+The other two that did not end by hand, the tables of ends and the table
+of line starts, are killed here, since a sweep stops a mutant at its first
+failing test where the replay ran every file. None of the 35 survived.
+
+Five of the 5,542 have another verdict than in main's sweep, each into or
+out of a timeout, and each is a mutant that changes sides between sweeps
+of one source. `src/` did not change from bef676d to 99f4920, and in the
+ten sweeps of it from bef676d's on, 51 mutants have two verdicts: 38 killed in
+one and timed out in another, 13 survived in one and timed out in another,
+and none killed in one and survived in another. The five are among the
+51: two of `mcp.ts` and one of `scan.ts` between killed and timed out, and
+the pair on the first loop that pops the list item stack (`scan.ts`),
+equivalent by the comment there, which survived in main's sweep and ran
+out the clock here, as in two of the ten.
+
+**No mutant survived that had not survived in main's sweep**: the 197
+survivors are main's 199 less that pair.
+
+**The minutes**, each shard's sweep step beside its initial run of the
+suite, which is what a runner's speed shows in:
+
+| Shard | Main | The same source | The rewrite | Mutants more |
+| --- | ---: | ---: | ---: | ---: |
+| 1, `links.ts` | 6m13s, 31 s | 4m48s, 23 s | 6m25s, 32 s | 13 |
+| 2 | 3m45s, 26 s | 5m39s, 37 s | 5m03s, 37 s | 3 |
+| 3 | 4m45s, 20 s | 2m42s, 11 s | 4m42s, 21 s | 0 |
+| 4 | 4m07s, 23 s | 3m43s, 21 s | 4m59s, 27 s | 4 |
+| 5 | 3m28s, 13 s | 3m35s, 14 s | 3m06s, 12 s | 1 |
+| 6 | 3m33s, 13 s | 2m43s, 10 s | 2m12s, 7 s | 10 |
+| The six | 25m51s | 23m10s | 26m27s | 31 |
+
+A shard's minutes follow its runner: shard 3 has no mutant more and took
+what it took on main's runner, and shard 4, which holds the one static
+mutant the rewrite adds, took a fifth more than main's on a runner whose
+initial run took a sixth more. Two sweeps of one source differ by 2m41s
+over the six shards, and the rewrite's took 36 seconds more than the
+slower of them. The table of shards stays.
+
+**The `break` stays 94.5.** The sweep reads 96.34%, inside what the ten
+before it read, 96.18% to 96.36%, and holds more: 35 mutants no sweep had
+made, every one detected.
+
 ### 2026-10-12: a survivor that is a file that did not load
 
 Stryker counts a failed test, not a test file that failed to load. A
