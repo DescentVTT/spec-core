@@ -276,6 +276,13 @@ describe('rejection', () => {
     rejects('(?#comment)', 'unsupported group');
   });
 
+  it('names the escape that lacks its hex digits', () => {
+    // After other text, where the letter is seen to be the escape's own and
+    // not what stands beside it.
+    rejects('a\\xZZ', 'expected 2 hex digits after "\\x"');
+    rejects('a\\u00g1', 'expected 4 hex digits after "\\u"');
+  });
+
   it('says where, not just what', () => {
     const error = (() => {
       try {
