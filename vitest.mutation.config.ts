@@ -52,19 +52,23 @@ export class QuickestFirst extends BaseSequencer {
 }
 
 /**
- * The suite as Stryker runs it: the one vitest.config.ts runs, less one file,
- * without v8 coverage, which Stryker replaces with its own per test, and in
- * the order above.
+ * The suite as Stryker runs it: the one vitest.config.ts runs, less two
+ * files, without v8 coverage, which Stryker replaces with its own per test,
+ * and in the order above.
  *
  * mutation-shards.test.ts tests the CI script that splits the sweep and
  * merges it back, and the order above. It reaches nothing under src/, so it
- * cannot kill a mutant, and every static mutant runs the whole suite. A test
- * holds the rest of this file to vitest.config.ts.
+ * cannot kill a mutant, and every static mutant runs the whole suite.
+ * mutation-unmeasured.test.ts tests the count of what a sweep does not read.
+ * It runs nothing under src/ either: it reads the sources as text, which in
+ * Stryker's sandbox carry every mutant at once, and loads Stryker's
+ * instrumenter, which every static mutant that survives would wait for. A
+ * test holds the rest of this file to vitest.config.ts.
  */
 export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
-    exclude: ['tests/mutation-shards.test.ts', '**/node_modules/**'],
+    exclude: ['tests/mutation-shards.test.ts', 'tests/mutation-unmeasured.test.ts', '**/node_modules/**'],
     environment: 'node',
     testTimeout: 60_000,
     sequence: { sequencer: QuickestFirst },

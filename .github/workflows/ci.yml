@@ -145,6 +145,13 @@ jobs:
           path: reports/shards
       - name: Merge the shards and apply the gate
         run: node scripts/mutation-shards.mjs merge reports/shards
+      # A score is of the mutants a sweep made, and Stryker makes none of what
+      # stands under a TypeScript `as`. This counts the places a mutator would
+      # have applied there, in the sources the merged report holds, and fails
+      # a count above the one the script records as left (ADR-0007,
+      # 2026-10-12).
+      - name: Count what the sweep did not read
+        run: node scripts/mutation-unmeasured.mjs reports/mutation/mutation.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
