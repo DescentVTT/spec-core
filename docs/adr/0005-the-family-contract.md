@@ -302,12 +302,16 @@ tool's CLAUDE.md can point.
 
   **A wrong command line is refused with `--help` or `--version` on it.**
   Each of the four refuses an option it does not know beside `--help`,
-  exit `2`, so a line that is wrong in any other way is refused there too;
-  spec-graph answered `--help` first for the refusals it added in 0.15.0 to
-  0.17.0, and only for those. And `--help` beside `--version` asks for two
-  answers of which one would go unread: spec-brief and spec-harness printed
-  the version, spec-graph and spec-guard the help. It is refused, exit `2`,
-  with a line that names both.
+  exit `2`, so a line that is wrong in any other way is refused there too.
+  spec-brief and spec-graph answered `--help` or `--version` instead of
+  every refusal they made of a line after reading it, `--root a --root b
+  --help` among them, as measured for DescentVTT/spec-brief#67 and
+  DescentVTT/spec-graph#99; this amendment said at first that spec-graph
+  did so only for the refusals it added in 0.15.0 to 0.17.0, which a
+  measurement of the older ones showed was not so. And `--help` beside
+  `--version` asks for two answers of which one would go unread: spec-brief
+  and spec-harness printed the version, spec-graph and spec-guard the help.
+  It is refused, exit `2`, with a line that names both.
 - **Nothing measured is not clean.** A check that inspected nothing - an empty
   scope, a diff that was never read, a base equal to the head - says so, and
   under `--strict` refuses.
