@@ -285,6 +285,29 @@ tool's CLAUDE.md can point.
   its two pairs already, and spec-harness has no option with an opposite.
   The same option twice is that option once, and an opposite alone wins
   over a configuration, the environment and the terminal as before.
+
+  *Amended 2026-10-18*, from the four tools as their mains stood on
+  2026-10-18, each run through its launcher:
+
+  **An option that takes one value is given one.** Given two that read as
+  two, the later was read and the earlier went unread, with no word of it,
+  in spec-brief and spec-harness: `--root nowhere --root .` ran in `.`.
+  spec-graph 0.17.0 and spec-guard 0.26.0 refuse the two
+  (DescentVTT/spec-graph#94, DescentVTT/spec-guard#61), and so does every
+  tool: exit `2`, one line that names both. Two values are compared as each
+  is read, not as it is written, so `--root .` beside `--root ./` names one
+  directory, asks one thing and is taken once, as in spec-guard; spec-graph
+  compared them as typed and refused it. An option that is a list stays a
+  list.
+
+  **A wrong command line is refused with `--help` or `--version` on it.**
+  Each of the four refuses an option it does not know beside `--help`,
+  exit `2`, so a line that is wrong in any other way is refused there too;
+  spec-graph answered `--help` first for the refusals it added in 0.15.0 to
+  0.17.0, and only for those. And `--help` beside `--version` asks for two
+  answers of which one would go unread: spec-brief and spec-harness printed
+  the version, spec-graph and spec-guard the help. It is refused, exit `2`,
+  with a line that names both.
 - **Nothing measured is not clean.** A check that inspected nothing - an empty
   scope, a diff that was never read, a base equal to the head - says so, and
   under `--strict` refuses.
