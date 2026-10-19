@@ -54,7 +54,7 @@ export class QuickestFirst extends BaseSequencer {
 /**
  * The suite as Stryker runs it: the one vitest.config.ts runs, less two
  * files, without v8 coverage, which Stryker replaces with its own per test,
- * and in the order above.
+ * in the order above and with a reporter named.
  *
  * mutation-shards.test.ts tests the CI script that splits the sweep and
  * merges it back, and the order above. It reaches nothing under src/, so it
@@ -72,5 +72,13 @@ export default defineConfig({
     environment: 'node',
     testTimeout: 60_000,
     sequence: { sequencer: QuickestFirst },
+    // Named, so that vitest adds none of its own. A suite that names none
+    // gets vitest's github-actions reporter beside the default one on a
+    // runner, and it appends a summary of each run to the step's: one a
+    // mutant, about 200 bytes each, some 1,700 of them in the largest shard
+    // of main's sweep of 89bcf7f, where GitHub uploads 1MiB of a step's
+    // summary. The default reporter writes to the worker's output, as it
+    // did, which Stryker shows only for a worker that exits unexpectedly.
+    reporters: ['default'],
   },
 });
