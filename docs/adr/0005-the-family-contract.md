@@ -312,6 +312,23 @@ tool's CLAUDE.md can point.
   `--version` asks for two answers of which one would go unread: spec-brief
   and spec-harness printed the version, spec-graph and spec-guard the help.
   It is refused, exit `2`, with a line that names both.
+
+  *Amended 2026-10-19*: **on Windows a drive letter names its volume in
+  either case.** Two values of a path option are compared as each is
+  resolved, without asking the disk, and Node's `path.resolve` keeps the
+  case a drive letter was written in, so `--root C:\x` beside `--root
+  c:\x` was refused as two directories, as measured of spec-brief 0.9.0
+  and spec-harness 0.19.0 in their round-24 pull requests; spec-graph
+  0.18.0 compares resolved paths the same way. Microsoft's *Naming Files,
+  Paths, and Namespaces* (learn.microsoft.com, *Naming Conventions*, read
+  2026-10-19) says drive letters are case-insensitive, `D:\` and `d:\`
+  naming the same volume, so on Windows each tool folds the case of a
+  drive letter before it compares two such values. The rest
+  of the path is compared as resolved, as before: the same page says NTFS
+  can be made to tell names apart by case, so whether two names are one
+  directory is the disk's to say, not the line's. A repository-relative
+  path is compared case-sensitively on every host, as *Paths and patterns*
+  has it.
 - **Nothing measured is not clean.** A check that inspected nothing - an empty
   scope, a diff that was never read, a base equal to the head - says so, and
   under `--strict` refuses.
@@ -389,6 +406,27 @@ tool's CLAUDE.md can point.
 - **Tools talk through their CLIs.** One tool reads another's versioned JSON;
   none imports another's package. Shared code arrives only through spec-core
   copies (ADR-0001). Each tool can be released, pinned and dropped on its own.
+- *Amended 2026-10-19*: **a tool may give another's answer again without
+  starting it, where that answer named everything it was made of and each
+  reads the same.** On Windows a start of Node is most of what a tool
+  costs, so spec-harness asking spec-brief for the same brief before every
+  write paid for it every time. A tool that answers another lists, in the
+  versioned JSON it writes, every input its answer was read from: each
+  file with a digest of its bytes, each directory whose entries it listed,
+  with the entries, and its own version; where it asked git which files
+  there are, what git read for that answer too, the index and each ignore
+  file that bears on it, or the answer says it is not to be kept.
+  The tool that asked may keep that answer and its list as state of its
+  own, outside the working tree under the git common directory as below,
+  and give it again only when every input on the list reads as listed. An
+  input it cannot read, one that reads otherwise, a list that names
+  nothing, an answer that names no list, and any doubt, start the other
+  tool as before: a kept answer may make a check quicker and never
+  different. Nothing is imported, and the list is held to what the
+  answering tool read by that tool's own tests, so a reader never guesses
+  what it read. An answer a person's signature stands behind, a ruling, is
+  kept only with the commit it was verified at and the bytes of the
+  signers file in its list.
 
 ### Paths and patterns
 
@@ -419,6 +457,10 @@ tool's CLAUDE.md can point.
   person, a sandbox in use - lives **outside the working tree**, under the git
   common directory (`.git/spec-harness/`), and only its outcome is written back
   into a document.
+
+  *Amended 2026-10-19*: an answer kept by the rule under *Findings and
+  output* is state of the same kind: outside the working tree, removed at
+  any time with no answer changing.
 - **Lifecycle words mean the same everywhere:**
 
   | status | spec-brief | spec-guard executes assertions | spec-graph |
