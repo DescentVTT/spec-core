@@ -11,7 +11,7 @@
  *
  * The order the sweep runs a mutant's test files in is held here too
  * (vitest.mutation.config.ts): it is the sweep's own, and no mutant is under
- * it.
+ * it. So is what the sweep reports, as vitest resolves it from that file.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -20,8 +20,8 @@ import { join, relative } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { minimatch } from 'minimatch';
-import { afterEach, describe, expect, it } from 'vitest';
-import { BaseSequencer, type TestSpecification, type Vitest } from 'vitest/node';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { BaseSequencer, type InlineConfig, resolveConfig, type TestSpecification, type Vitest } from 'vitest/node';
 
 import {
   ASSIGNED,
@@ -452,6 +452,22 @@ describe('this repository', () => {
   const load = async <T>(name: string): Promise<T> => ((await import(pathToFileURL(join(ROOT, name)).href)) as { default: T }).default;
   const strykerConfig = () => load<{ mutate: string[]; thresholds: Thresholds; vitest: unknown }>('stryker.config.mjs');
 
+  /**
+   * The reporters vitest gives a run of a suite on a GitHub runner, where
+   * every step has GITHUB_ACTIONS set to true, resolved by vitest itself, as
+   * Stryker's runner has it resolve them: it names none of its own.
+   */
+  async function onARunner(name: string): Promise<string[]> {
+    const suite = await load<{ test?: InlineConfig }>(name);
+    vi.stubEnv('GITHUB_ACTIONS', 'true');
+    try {
+      const { vitestConfig } = await resolveConfig({ ...suite.test, config: false, root: ROOT });
+      return vitestConfig.reporters.map((reporter) => (Array.isArray(reporter) ? String(reporter[0]) : 'inline'));
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  }
+
   // Stryker's reading of `mutate`, written again here with minimatch, the
   // matcher Stryker uses, so the script is not checked against itself.
   const reads = (patterns: readonly string[], file: string): boolean =>
@@ -494,10 +510,10 @@ describe('this repository', () => {
     // that reaches a file other than through an import, score one that is not
     // the sweep a single run would have done.
     expect((await strykerConfig()).vitest).toEqual({ configFile: 'vitest.mutation.config.ts', related: false });
-    type Test = { include: string[]; exclude?: string[]; environment: string; testTimeout: number; sequence?: unknown };
+    type Test = { include: string[]; exclude?: string[]; environment: string; testTimeout: number; sequence?: unknown; reporters?: unknown };
     const unit = (await load<{ test: Test }>('vitest.config.ts')).test;
     const suite = await mutationSuite();
-    const { exclude, sequence, ...mutation } = (suite.default as { test: Test }).test;
+    const { exclude, sequence, reporters, ...mutation } = (suite.default as { test: Test }).test;
     expect(mutation).toEqual({ include: unit.include, environment: unit.environment, testTimeout: unit.testTimeout });
     // Neither reaches a function under src/, so neither can kill a mutant.
     expect(exclude).toEqual(['tests/mutation-shards.test.ts', 'tests/mutation-unmeasured.test.ts', '**/node_modules/**']);
@@ -505,6 +521,21 @@ describe('this repository', () => {
     // runs its files side by side.
     expect(sequence).toEqual({ sequencer: suite.QuickestFirst });
     expect(unit.sequence).toBeUndefined();
+    // So is the reporter it names, which the next test holds to what vitest
+    // makes of it.
+    expect(reporters).toEqual(['default']);
+    expect(unit.reporters).toBeUndefined();
+  });
+
+  it("has the sweep's run report through vitest's default reporter alone on a runner, so that no mutant's run adds a summary to the step's", async () => {
+    // Where a suite names none, vitest adds its github-actions reporter on a
+    // runner, and it appends a summary of every run to the step's own: about
+    // 1,700 of them in the largest shard of main's sweep of 89bcf7f, where
+    // GitHub uploads 1MiB a step (vitest.mutation.config.ts).
+    expect(await onARunner('vitest.mutation.config.ts')).toEqual(['default']);
+    // The suite `npm test` runs keeps the annotations and the summary vitest
+    // gives a run on a runner.
+    expect(await onARunner('vitest.config.ts')).toContain('github-actions');
   });
 
   it('gives a shard its own files, its own report, and no gate', async () => {
