@@ -89,10 +89,12 @@ test of a name matched and one four times as long allowed eight times the
 short run and 0.1 ms, about eighteen times at its ten microseconds, so a
 matcher quadratic in the name (sixteen times) passed it; and a loaded
 runner stalls a whole stretch of ten milliseconds, by up to a thousand
-times, so that the fastest of seven stretches at one size read 8.33 times
-the other with linear work, and failed once on macOS with Node 26
+times, so that the fastest of seven stretches at one size read up to 8.33
+times the other with linear work (on Windows with Node 22), and main's
+run of the test read 19.3 times and failed once on macOS with Node 26
 (DescentVTT/spec-guard#68 measured both, over the twelve images and Node
-versions of its matrix). A test of cost may hold twice what linear work
+versions of its matrix; this amendment first gave the 8.33 as the macOS
+failure's). A test of cost may hold twice what linear work
 takes with no fixed allowance where it reads past a stall instead: one
 uncounted stretch at each size first, the fastest of at least twenty
 stretches of a few milliseconds at each, and one more reading of a ratio
