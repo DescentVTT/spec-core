@@ -83,6 +83,24 @@ two seconds on the regular-expression matcher stay: every mutant that fails
 them changes an answer those tests assert first, and the work they bound
 takes microseconds.
 
+*Amended 2026-10-19*: **the allowance for noise may be a way of reading,
+not a number.** A fixed allowance is large beside a short run: spec-guard's
+test of a name matched and one four times as long allowed eight times the
+short run and 0.1 ms, about eighteen times at its ten microseconds, so a
+matcher quadratic in the name (sixteen times) passed it; and a loaded
+runner stalls a whole stretch of ten milliseconds, by up to a thousand
+times, so that the fastest of seven stretches at one size read 8.33 times
+the other with linear work, and failed once on macOS with Node 26
+(DescentVTT/spec-guard#68 measured both, over the twelve images and Node
+versions of its matrix). A test of cost may hold twice what linear work
+takes with no fixed allowance where it reads past a stall instead: one
+uncounted stretch at each size first, the fastest of at least twenty
+stretches of a few milliseconds at each, and one more reading of a ratio
+over the bound before it fails. Over 6,240 such readings on the runners
+the linear matcher's ratio was at most 6.08 against the bound of 8, and
+the quadratic one failed every reading. A test that keeps a fixed
+allowance states it beside the bound, as before.
+
 ## Consequences
 
 The suite is larger than the code, and slower than a unit suite usually is,
