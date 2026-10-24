@@ -858,3 +858,80 @@ No survivor here is a file that did not load, and the four are what their
 comments say. The entry above adds one static mutant, the list of readable
 characters, and tests fail for it in their bodies. This repository has no
 function its tables are built through, so there is none to load alone.
+
+### 2026-10-24: what a clock decided
+
+`src/` is the same at main's pushes from 89bcf7f to 457b8d6, at the pull
+requests between them and at Dependabot's pull request 46, and the eleven
+sweeps of it read 198 to 204 survivors. Ten mutants made the difference:
+195 others survived all eleven, and each of the ten timed out in some and
+survived the rest; no sweep killed one.
+
+| Mutant | Timed out | Survived |
+| --- | ---: | ---: |
+| `links.ts` 199, `pairBrackets` walking to `at <= to` | 5 | 6 |
+| `links.ts` 304, a paragraph's line asked only whether it is a definition's | 7 | 4 |
+| `links.ts` 307, `first <= lines.length` | 7 | 4 |
+| `links.ts` 474, `resume` starting at `+1` | 6 | 5 |
+| `links.ts` 475, the walk of a paragraph to `at <= to` | 6 | 5 |
+| `links.ts` 476, `textEnd > 0` | 3 | 8 |
+| `scan.ts` 427, `true` for `items.length > 0` | 3 | 8 |
+| `scan.ts` 427, `items.length >= 0` | 4 | 7 |
+| `lines.ts` 77, `end >= start` | 2 | 9 |
+| `automaton.ts` 250, the stop with no state live made `false` | 6 | 5 |
+
+**The runner decided.** Each of the 49 timeouts came in a sweep whose
+shard had drawn a slower runner, as the shard's initial run reads it, the
+run that sets every mutant's clock: 27.2 to 29.1 seconds for the shard of
+`links.ts`, where its four other sweeps read 21.0 to 23.3; 32.6 to 33.4 for
+that of `lines.ts` and `automaton.ts`, where its four others read 16.6 to
+26.9; 23.4 to 24.2 for that of `scan.ts`, where its seven others read 11.9
+to 22.6. On those slower runs 49 of the 64 verdicts were timeouts, and on
+the faster none of the 46. Stryker 10.0.0 gives a mutant one and a half
+times what its tests took in the initial run, five seconds and the run's
+overhead (`mutant-test-planner.js`, as the entry of 2026-10-11 has it); the
+initial run is one process, and the mutants run four at a time, one to
+each logical processor. That the slower runners slow four workers more
+than one is a reading of these figures: the reports carry no times.
+
+**Each was replayed by hand** against the test files that cover it, and
+every test passed. Each was then run beside main's source on 20,000
+generated documents, the corpus's own and a soup of the characters these
+readers act on, with `\r\n` and without a final line ending; on 100,000
+line tables; and on 100,000 generated globs, each matched against six
+generated names. None changed an answer.
+
+- **Nine are equivalent**, and each has the comment at its code that says
+  why: the header of `links.ts` for the two walks to `to`, where no loop
+  acts on what is there; the comment above `inParagraph` for the tests of
+  a line and the bound of the loop over them; the comment above `textEnd`
+  for `textEnd > 0` and `resume`'s first value; the one above `items` in
+  `scan.ts`, `undefined > indent` being false; and the one in `endOf` in
+  `lines.ts`. Timed beside main's source in turn, the fastest of 21 runs
+  in each of two passes, on the documents of
+  `tests/markdown/linear.test.ts` at their larger size and on a generated
+  megabyte, the two walks to `to` took 1.26 to 1.72 times main's time on
+  the three documents that end in a long paragraph with no line ending
+  after it, where each reads one past the end of the text; the other 204
+  readings of the nine lay between 0.79 and 1.26, where two copies of
+  main's source read 0.88 to 1.21 against each other. A test of cost holds
+  how work grows, and none of the nine changes that.
+- **One changes cost alone**: the stop in `Matcher.test`. With no state
+  live the rest of a name cannot make it match, and without the stop the
+  matcher reads on to the end and answers false all the same.
+  `tests/pattern/glob.test.ts` now holds it with a name of 1,024
+  characters against one of 16, each failing at its first, read past a
+  stall as the amendment of 2026-10-19 has it (`fastestRatioInTurn` in
+  `tests/timing.ts`) and held to twice. With the stop the reading was 0.67
+  to 1.66 over 200 readings, beside two runs of the suite or not, and
+  without it 38 to 57, plain and under coverage; the test fails the mutant
+  in its body.
+
+**What is left.** No test holds an equivalent mutant, so the nine will go
+on timing out on the slower runners and surviving on the faster, and
+main's survivors will go on moving by up to nine with nothing changed.
+What could stop that is the clock the sweep sets, or the nine marked in
+the source for the sweep to leave out, which every tool would copy; this
+entry decides neither.
+
+**The `break` stays 94.5.**
