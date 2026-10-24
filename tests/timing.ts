@@ -52,16 +52,45 @@ export function perRunInTurn(stretches: number, span: number, ...work: (() => un
   const best = work.map(() => Number.POSITIVE_INFINITY);
   for (let i = 0; i < stretches; i += 1) {
     work.forEach((run, k) => {
-      let runs = 0;
-      let elapsed = 0;
-      const started = performance.now();
-      do {
-        run();
-        runs += 1;
-        elapsed = performance.now() - started;
-      } while (elapsed < span && runs < 100_000);
-      best[k] = Math.min(best[k] as number, elapsed / runs);
+      best[k] = Math.min(best[k] as number, perRun(span, run));
     });
   }
   return best;
+}
+
+function perRun(span: number, run: () => unknown): number {
+  let runs = 0;
+  let elapsed = 0;
+  const started = performance.now();
+  do {
+    run();
+    runs += 1;
+    elapsed = performance.now() - started;
+  } while (elapsed < span && runs < 100_000);
+  return elapsed / runs;
+}
+
+/**
+ * For work too quick to time once, at two sizes: how many times as long a run
+ * of the larger takes as a run of the smaller, the fastest stretch of each,
+ * over `stretches` stretches of each taken in turn, after one of each that is
+ * not counted.
+ *
+ * This is the reading past a stall of ADR-0007, amended 2026-10-19. A busy
+ * machine only adds time, so the fastest stretch is the nearest to what the
+ * work costs, and a reading is spoiled only where every stretch of one size
+ * was slowed and none of the other was. The amendment has twenty or more
+ * stretches of a few milliseconds and a second reading before a ratio over
+ * the bound fails, and then no fixed allowance.
+ */
+export function fastestRatioInTurn(stretches: number, span: number, smaller: () => unknown, larger: () => unknown): number {
+  perRun(span, smaller);
+  perRun(span, larger);
+  let small = Number.POSITIVE_INFINITY;
+  let large = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < stretches; i += 1) {
+    small = Math.min(small, perRun(span, smaller));
+    large = Math.min(large, perRun(span, larger));
+  }
+  return large / small;
 }

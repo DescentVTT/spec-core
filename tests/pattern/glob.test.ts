@@ -15,7 +15,7 @@ import {
   MAX_STATES,
   type GlobOptions,
 } from '../../src/pattern/index.js';
-import { perRunInTurn } from '../timing.js';
+import { fastestRatioInTurn, perRunInTurn } from '../timing.js';
 
 const PATH: GlobOptions = { dialect: 'path', caseSensitive: true };
 const RIPGREP: GlobOptions = { dialect: 'ripgrep', caseSensitive: true };
@@ -1009,5 +1009,24 @@ describe('cost', () => {
     expect(longer).toBeLessThan(8 * shorter + 0.1);
     // A backtracking engine takes about 28 seconds on this; see the ADR.
     expect(glob.match(`${'a-'.repeat(60)}y`)).toBe(false);
+  });
+
+  it('reads a name no further than the first character that leaves no state live', () => {
+    // Past that character nothing can make the name match, so the matcher
+    // stops there, and a name of 1,024 characters that fails at its first
+    // costs what one of 16 does. No answer shows it: read to its end, the
+    // name is refused all the same. With the stop taken out the longer read
+    // 38 to 57 times the shorter, plain and under coverage, and with it 0.67
+    // to 1.66 over 200 readings (ADR-0007, 2026-10-24).
+    const glob = compileGlob('src/**/*.ts', PATH);
+    const short = `x${'a'.repeat(15)}`;
+    const long = `x${'a'.repeat(1023)}`;
+    expect(glob.match(long)).toBe(false);
+    const read = (): number => fastestRatioInTurn(21, 3, () => glob.match(short), () => glob.match(long));
+    const first = read();
+    expect(first < 2 ? first : Math.min(first, read())).toBeLessThan(2);
+    // A name the pattern keeps live is read to its end.
+    expect(glob.match(`src/${'a'.repeat(1017)}.ts`)).toBe(true);
+    expect(glob.match(`src/${'a'.repeat(1017)}.tsx`)).toBe(false);
   });
 });
