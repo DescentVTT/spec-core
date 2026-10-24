@@ -273,6 +273,65 @@ spec:
   lines of the diff Ultimate.
 - Leave out the lines of a tool you have not installed.
 
+### `doctor`, an optional step
+
+`spec-harness doctor` can run beside `premises`, in the same job. There it
+checks what the repository holds for the guard: that each sibling installed
+is no older than spec-harness needs, that Claude Code's settings run the
+guard once and on a line that guards, that `disableAllHooks` does not
+switch it off, and that the branch names a brief a round can work under. It
+exits `1` for any of them, and its log says which
+([spec-harness's README](https://github.com/DescentVTT/spec-harness#doctor)).
+
+- Run it without `--strict`. Where no `claude` is on the runner's `PATH`,
+  the release of Claude Code cannot be told, and `--strict` fails for that
+  wherever `init`'s hooks are in the settings.
+- Fetch the base under the name `.spec-harness.json` gives it, with its
+  history. A round archives its brief on its own branch before the branch
+  merges ([the tutorial, step 10](tutorial.md#10-archive-and-merge)), so its
+  last pull request names a brief spec-brief has archived, under which the
+  guard holds every write. From the spec-harness release after 0.20.0 on,
+  that brief fails nothing there where git says the branch archived it: the
+  archived file is in the head and not at the merge base of the base and the
+  head. Where the base names no commit, or the history is shallow, `doctor`
+  cannot tell, and fails, as 0.20.0 fails every round's last pull request.
+- A project that turns the Claude Code plugin on in its settings, with none
+  of `init`'s hooks, fails `doctor` on a runner, where the plugin is not
+  installed.
+
+On GitHub Actions, `actions/checkout` fetches one commit by default, and
+`fetch-depth: 0` fetches the history of every branch and tag; in a pull
+request it checks out on no branch
+([its README](https://github.com/actions/checkout#readme), read
+2026-10-24), at the pull request's merge branch (GitHub's
+[Events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request),
+`pull_request`). Neither page says a local branch of the base is made, so
+the job makes one from the branch the checkout fetched, which the
+checkout's log in a release job of spec-harness's (its run of 2026-10-19)
+names as fetched by `+refs/heads/*:refs/remotes/origin/*`:
+
+```yaml
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      # ...the steps above, then:
+      - if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: git branch --force main origin/main # the base .spec-harness.json names
+      - if: ${{ !cancelled() }}
+        run: npx --no-install @descent-vtt/spec-harness doctor
+```
+
+On Forgejo Actions each `FORGEJO_*` variable is also a `GITHUB_*` one
+(Forgejo's [Actions reference](https://forgejo.org/docs/latest/user/actions/reference/),
+read 2026-10-24), so `GITHUB_HEAD_REF` names a pull request's branch there
+as well; the page does not say what a pull request's run checks out. On
+GitLab, a project's *Limit the number of changes fetched during clone* left
+empty or set to `0` fetches the whole history, and a job's `GIT_DEPTH`
+overrides it (GitLab's
+[pipeline settings](https://docs.gitlab.com/ci/pipelines/settings/#limit-the-number-of-changes-fetched-during-clone),
+read 2026-10-24); fetch the base under its name there too.
+
 ## When agents write most of the code
 
 The tools check that the work matches the documents. They cannot check that
