@@ -6,10 +6,10 @@ nothing about the first.
 
 | You want to... | Install | Run in CI |
 | --- | --- | --- |
-| keep code honest to its ADRs | `@descent-vtt/spec-guard` | `spec-guard` |
-| keep the documents consistent with each other | `@descent-vtt/spec-graph` | `spec-graph check` |
-| run rounds of work from briefs, some in parallel | `@descent-vtt/spec-brief` | `spec-brief lint`, `spec-brief matrix` |
-| let agents run those rounds inside the lines | all of the above and `@descent-vtt/spec-harness` | the above and `spec-harness premises`, plus `spec-harness init --write` once |
+| keep code honest to its ADRs | `@spec-family/spec-guard` | `spec-guard` |
+| keep the documents consistent with each other | `@spec-family/spec-graph` | `spec-graph check` |
+| run rounds of work from briefs, some in parallel | `@spec-family/spec-brief` | `spec-brief lint`, `spec-brief matrix` |
+| let agents run those rounds inside the lines | all of the above and `@spec-family/spec-harness` | the above and `spec-harness premises`, plus `spec-harness init --write` once |
 
 Node 22 or later, whatever language the repository is written in. A
 repository with no JavaScript of its own, such as a .NET solution, keeps a
@@ -22,7 +22,7 @@ heading - which is the one set of status words every tool reads
 ([ADR-0005](adr/0005-the-family-contract.md#documents-and-state)).
 
 Give `npx` the package's full name, and `--no-install` wherever the project
-has installed the tool: `npx --no-install @descent-vtt/spec-guard`. The
+has installed the tool: `npx --no-install @spec-family/spec-guard`. The
 command's name alone is not this project's on npm; [Names](#names) has what
 that costs and what was measured.
 
@@ -40,9 +40,9 @@ on a small repository, with the output of every step.
 ## The whole loop, once
 
 ```bash
-npm install --save-dev @descent-vtt/spec-brief @descent-vtt/spec-guard @descent-vtt/spec-graph @descent-vtt/spec-harness
-npx --no-install @descent-vtt/spec-harness init            # read the plan
-npx --no-install @descent-vtt/spec-harness init --write    # apply it
+npm install --save-dev @spec-family/spec-brief @spec-family/spec-guard @spec-family/spec-graph @spec-family/spec-harness
+npx --no-install @spec-family/spec-harness init            # read the plan
+npx --no-install @spec-family/spec-harness init --write    # apply it
 ```
 
 `init` makes the tools agree from the first day: spec-brief's brief and
@@ -53,15 +53,27 @@ have and changes nothing until `--write`.
 
 ## Names
 
-Each tool is published under the `@descent-vtt` scope and installs a command
+Each tool is published under the `@spec-family` scope and installs a command
 named without it:
 
 | Package: the name to install, and to give `npx` | The command it installs |
 | --- | --- |
-| `@descent-vtt/spec-brief` | `spec-brief` |
-| `@descent-vtt/spec-graph` | `spec-graph` |
-| `@descent-vtt/spec-guard` | `spec-guard` |
-| `@descent-vtt/spec-harness` | `spec-harness` |
+| `@spec-family/spec-brief` | `spec-brief` |
+| `@spec-family/spec-graph` | `spec-graph` |
+| `@spec-family/spec-guard` | `spec-guard` |
+| `@spec-family/spec-harness` | `spec-harness` |
+
+Until 2026-10-26 the tools were published as `@descent-vtt/<name>`, up to
+spec-brief 0.11.0, spec-graph 0.20.0, spec-guard 0.29.0 and spec-harness
+0.21.0. Those packages are deprecated and still install, and no release
+under `@spec-family` looks for one: spec-harness finds its siblings under
+its own scope only, so a project that runs it moves every tool at once. A
+project moves by uninstalling each `@descent-vtt/<name>`, installing
+`@spec-family/<name>`, and writing the new name wherever it names the old
+one - a command for `npx`, a CI job, the paths under `node_modules/` that
+`spec-harness init` wrote for the hooks and the MCP server, the plugin
+`.spec-brief.json` loads. Each tool's CHANGELOG says what its first release
+under the new name asks ([ADR-0005](adr/0005-the-family-contract.md#names)).
 
 The same names without the scope are not this project. On npm, `spec-harness`
 is another publisher's package, and `spec-brief`, `spec-graph`, `spec-guard`
@@ -75,14 +87,14 @@ fetches the package of that name from the registry and runs it, and without a
 terminal, as in CI or under an agent, it does not ask first. So these pages
 give `npx` the package's full name, in one of two forms:
 
-- **`npx --no-install @descent-vtt/spec-guard`** in a project that installed
+- **`npx --no-install @spec-family/spec-guard`** in a project that installed
   the tool: in CI, in a script, in what an agent is told to run. It runs the
   project's install, the version the lockfile pins, and where there is none
   it stops with an error that names this package, having fetched nothing.
   Run it from the directory whose `package.json` lists the tools: npm reads
   the install of the nearest `package.json`, or of the workspace root above
   it.
-- **`npx @descent-vtt/spec-guard`**, without `--no-install`, where nothing is
+- **`npx @spec-family/spec-guard`**, without `--no-install`, where nothing is
   installed: it fetches this package, its latest release, and runs it.
 
 <!-- bare-name: the two forms below are shown as what not to write -->
@@ -116,7 +128,7 @@ terminal attached:
   `npx canceled due to missing packages and no YES option` and the package
   they did not fetch, whether or not `CI` is set. `npm init <initializer>`,
   which is `npx create-<initializer>`, stops the same way, and so does
-  `npx @descent-vtt/spec-guard` without `--no-install`, until the project
+  `npx @spec-family/spec-guard` without `--no-install`, until the project
   has installed the tool.
 - **Where.** In the directory of that `package.json`, in a plain
   subdirectory of it and in a workspace of it. Not in a directory below it
@@ -167,7 +179,7 @@ spec-harness command does. A CI checkout is usually on no branch, so on a
 detached HEAD it reads the branch the forge's CI names:
 `GITHUB_HEAD_REF`, `GITHUB_REF_NAME` on a branch push,
 `CI_MERGE_REQUEST_SOURCE_BRANCH_NAME` or `CI_COMMIT_BRANCH`
-([ADR-0004](https://github.com/DescentVTT/spec-harness/blob/main/docs/adr/0004-the-active-brief-is-named-not-guessed.md)).
+([ADR-0004](https://github.com/spec-family/spec-harness/blob/main/docs/adr/0004-the-active-brief-is-named-not-guessed.md)).
 The jobs below rely on that and need spec-harness 0.7.0 or later: with 0.6, a
 round's own merge request reports the premise it set out to retire as stale.
 
@@ -195,15 +207,15 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - run: npx --no-install @descent-vtt/spec-guard --format github
+      - run: npx --no-install @spec-family/spec-guard --format github
       - if: ${{ !cancelled() }}
-        run: npx --no-install @descent-vtt/spec-brief lint --format github
+        run: npx --no-install @spec-family/spec-brief lint --format github
       - if: ${{ !cancelled() }}
-        run: npx --no-install @descent-vtt/spec-brief matrix --format github
+        run: npx --no-install @spec-family/spec-brief matrix --format github
       - if: ${{ !cancelled() }}
-        run: npx --no-install @descent-vtt/spec-harness premises
+        run: npx --no-install @spec-family/spec-harness premises
       - if: ${{ !cancelled() }}
-        run: npx --no-install @descent-vtt/spec-graph check --format sarif > spec-graph.sarif
+        run: npx --no-install @spec-family/spec-graph check --format sarif > spec-graph.sarif
       - if: ${{ !cancelled() }}
         uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
@@ -222,7 +234,7 @@ jobs:
   2026). Code scanning takes an upload in a public repository, and in a
   private one where GitHub Code Security is enabled; a private repository's
   job also needs `actions: read`. Without code scanning, write
-  `npx --no-install @descent-vtt/spec-graph check --format markdown >> "$GITHUB_STEP_SUMMARY"`
+  `npx --no-install @spec-family/spec-graph check --format markdown >> "$GITHUB_STEP_SUMMARY"`
   and drop the upload and `security-events: write` with it.
 - Node 24 is the Active LTS until 20 October 2026; Node 26 becomes the Active
   LTS on 28 October 2026.
@@ -240,11 +252,11 @@ spec:
     # The job stops at the first command that fails, so every tool runs once,
     # the worst exit code is kept, and the job ends with it.
     - worst=0
-    - npx --no-install @descent-vtt/spec-guard --format gitlab > gl-spec-guard.json || worst=$(( $? > worst ? $? : worst ))
-    - npx --no-install @descent-vtt/spec-graph check --format gitlab > gl-spec-graph.json || worst=$(( $? > worst ? $? : worst ))
-    - npx --no-install @descent-vtt/spec-brief lint --format gitlab > gl-spec-brief-lint.json || worst=$(( $? > worst ? $? : worst ))
-    - npx --no-install @descent-vtt/spec-brief matrix --format gitlab > gl-spec-brief-matrix.json || worst=$(( $? > worst ? $? : worst ))
-    - npx --no-install @descent-vtt/spec-harness premises || worst=$(( $? > worst ? $? : worst ))
+    - npx --no-install @spec-family/spec-guard --format gitlab > gl-spec-guard.json || worst=$(( $? > worst ? $? : worst ))
+    - npx --no-install @spec-family/spec-graph check --format gitlab > gl-spec-graph.json || worst=$(( $? > worst ? $? : worst ))
+    - npx --no-install @spec-family/spec-brief lint --format gitlab > gl-spec-brief-lint.json || worst=$(( $? > worst ? $? : worst ))
+    - npx --no-install @spec-family/spec-brief matrix --format gitlab > gl-spec-brief-matrix.json || worst=$(( $? > worst ? $? : worst ))
+    - npx --no-install @spec-family/spec-harness premises || worst=$(( $? > worst ? $? : worst ))
     - exit $worst
   artifacts:
     when: always
@@ -281,7 +293,7 @@ is no older than spec-harness needs, that Claude Code's settings run the
 guard once and on a line that guards, that `disableAllHooks` does not
 switch it off, and that the branch names a brief a round can work under. It
 exits `1` for any of them, and its log says which
-([spec-harness's README](https://github.com/DescentVTT/spec-harness#doctor)).
+([spec-harness's README](https://github.com/spec-family/spec-harness#doctor)).
 
 - Run it without `--strict`. Where no `claude` is on the runner's `PATH`,
   the release of Claude Code cannot be told, and `--strict` fails for that
@@ -319,7 +331,7 @@ names as fetched by `+refs/heads/*:refs/remotes/origin/*`:
       - if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         run: git branch --force main origin/main # the base .spec-harness.json names
       - if: ${{ !cancelled() }}
-        run: npx --no-install @descent-vtt/spec-harness doctor
+        run: npx --no-install @spec-family/spec-harness doctor
 ```
 
 On Forgejo Actions each `FORGEJO_*` variable is also a `GITHUB_*` one
@@ -384,7 +396,7 @@ GitHub, a step after `npm ci` in the job above:
         run: |
           git fetch --no-tags --depth=1 origin "$GITHUB_BASE_REF"
           git worktree add --detach "$RUNNER_TEMP/base" FETCH_HEAD
-          npx --no-install @descent-vtt/spec-guard "$RUNNER_TEMP/base/docs/adr/**/*.md"
+          npx --no-install @spec-family/spec-guard "$RUNNER_TEMP/base/docs/adr/**/*.md"
 ```
 
 The job's checkout keeps no credentials, and a public repository's fetch
@@ -403,7 +415,7 @@ spec-base-rules:
     - git fetch --depth 1 origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
     - base="$(mktemp -d)"
     - git worktree add --detach "$base" FETCH_HEAD
-    - npx --no-install @descent-vtt/spec-guard "$base/docs/adr/**/*.md"
+    - npx --no-install @spec-family/spec-guard "$base/docs/adr/**/*.md"
 ```
 
 A merge request pipeline fetches only the pipeline's own ref, and a new
@@ -433,7 +445,7 @@ agent's, and every step of it is checked.
 ### Merge settings that keep rulings
 
 A ruling counts while the commit that last changed its row carries the
-person's signature ([ADR-0006](https://github.com/DescentVTT/spec-harness/blob/main/docs/adr/0006-a-ruling-is-a-signed-commit.md)).
+person's signature ([ADR-0006](https://github.com/spec-family/spec-harness/blob/main/docs/adr/0006-a-ruling-is-a-signed-commit.md)).
 A merge that rewrites the round's commits drops it: the row then belongs to a
 commit the forge made, unsigned or signed with the forge's own key, which no
 allowed signers file lists. Rulings verify on the branch before the merge, so

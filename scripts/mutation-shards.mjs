@@ -14,8 +14,8 @@
  * with the library Stryker's own gate uses, and compares it the way that gate
  * does.
  *
- * Adapted from @descent-vtt/spec-graph (its ADR-0019), which took it from
- * @descent-vtt/spec-guard (its ADR-0003); the same merge scores both their
+ * Adapted from @spec-family/spec-graph (its ADR-0019), which took it from
+ * @spec-family/spec-guard (its ADR-0003); the same merge scores both their
  * sweeps. Every sweep here is a full one, so there is no incremental file to
  * split between the shards.
  *

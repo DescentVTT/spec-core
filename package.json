@@ -1,5 +1,5 @@
 {
-  "name": "@descent-vtt/spec-core",
+  "name": "@spec-family/spec-core",
   "version": "0.1.0",
   "private": true,
   "description": "The shared, pure core of the spec-* tools: POSIX paths, glob dialects with a non-backtracking matcher and intersection, a Markdown structure scanner, front matter, and JSON-RPC framing.",
@@ -52,12 +52,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DescentVTT/spec-core.git"
+    "url": "git+https://github.com/spec-family/spec-core.git"
   },
   "bugs": {
-    "url": "https://github.com/DescentVTT/spec-core/issues"
+    "url": "https://github.com/spec-family/spec-core/issues"
   },
-  "homepage": "https://github.com/DescentVTT/spec-core#readme",
+  "homepage": "https://github.com/spec-family/spec-core#readme",
   "overrides": {
     "qs": "^6.16.0"
   }

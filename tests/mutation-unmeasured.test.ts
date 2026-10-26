@@ -13,7 +13,7 @@
  * Not part of a mutation run: it reads `src/` as text, which in Stryker's
  * sandbox carries every mutant at once, and it loads the instrumenter, which
  * every static mutant that survives would wait for. Adapted from
- * @descent-vtt/spec-guard's; 36 defects put one at a time into the script,
+ * @spec-family/spec-guard's; 36 defects put one at a time into the script,
  * the sweep's configuration and the workflow each failed it (ADR-0007,
  * 2026-10-12).
  */

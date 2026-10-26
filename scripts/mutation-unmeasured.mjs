@@ -30,7 +30,7 @@
  * not installed nothing is measured, and the run fails saying which package
  * it could not find.
  *
- * Adapted from @descent-vtt/spec-guard (its ADR-0003, amended 2026-10-12);
+ * Adapted from @spec-family/spec-guard (its ADR-0003, amended 2026-10-12);
  * the four tools hold their own sources with the same count.
  */
 

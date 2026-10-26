@@ -80,6 +80,13 @@ is that `~`.
 3. It states a support window: from 1.0, the last minor of the previous major
    gets security and crash fixes for six months after a new major.
 
+*Amended 2026-10-26*: **the repository outside is outside spec-family.**
+The family moved on 2026-10-26 from the GitHub organization DescentVTT to
+its own, spec-family (ADR-0005, Names), and the second condition moves with
+it: the tool is in use in a repository outside the spec-family
+organization. What the condition asks for is a user who is not the family
+itself, and the family's home is now spec-family.
+
 After 1.0 the same rule moves up one place: what can turn a run red is a
 major, a feature a minor, and a patch reports less or crashes less.
 

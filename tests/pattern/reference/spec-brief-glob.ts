@@ -1,4 +1,4 @@
-// Verbatim from DescentVTT/spec-brief@72301c3 src/glob.ts: the reference the differential test reads, never shipped.
+// Verbatim from spec-family/spec-brief@72301c3 src/glob.ts: the reference the differential test reads, never shipped.
 /**
  * Globs: parsing, matching, and deciding whether two globs can name the same file.
  *
