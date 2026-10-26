@@ -65,6 +65,19 @@ copies a module names the spec-core commit in its own changelog.
   unless colour is forced, and `CI` not read for colour. The adopting guide
   lists the refusal under exit `2`.
 
+### Changed since ffe9b8a
+
+What the tools that copied ffe9b8a - all four - see when they copy again.
+
+- `scripts/vendor.mjs` names the copy's source
+  `https://github.com/spec-family/spec-core`, in `VENDOR.json` and in the
+  README it writes beside the copies, where it named the repository's
+  address under DescentVTT. No module changes with it, and no file's hash:
+  `VENDOR.json` holds the hashes of the modules' files, and not of itself
+  or of the README.
+  Upgrading: a tool's `tests/vendor.test.ts` that holds `source` expects the
+  new address.
+
 ### Changed since 7e41240
 
 What the tools that copied 7e41240 - all four - see when they copy again.

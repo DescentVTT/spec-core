@@ -1,4 +1,4 @@
-// Verbatim from DescentVTT/spec-graph@2b2ddba src/glob.ts, lines 57-221: the matchers without the directory walk.
+// Verbatim from spec-family/spec-graph@2b2ddba src/glob.ts, lines 57-221: the matchers without the directory walk.
 // Its imports point at spec-core, which holds the same functions: paths.ts's
 // toPosix and normalisePosix, and regex.ts moved unchanged as compileRegex.
 // The reference the differential test reads, never shipped.

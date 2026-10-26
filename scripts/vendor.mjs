@@ -28,7 +28,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const MANIFEST = JSON.parse(readFileSync(join(ROOT, 'modules.json'), 'utf8'));
 const DEFAULT_DIR = 'src/vendor/spec-core';
-const SOURCE = 'https://github.com/DescentVTT/spec-core';
+const SOURCE = 'https://github.com/spec-family/spec-core';
 
 function fail(message) {
   process.stderr.write(`vendor: ${message}\n`);

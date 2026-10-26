@@ -1,4 +1,4 @@
-// Verbatim from DescentVTT/spec-guard@d0ca38a src/glob.ts, lines 14-222: the matchers without the directory walk.
+// Verbatim from spec-family/spec-guard@d0ca38a src/glob.ts, lines 14-222: the matchers without the directory walk.
 // The reference the differential test reads, never shipped.
 
 import path from 'node:path';
