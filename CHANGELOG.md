@@ -5,6 +5,24 @@ copies a module names the spec-core commit in its own changelog.
 
 ## Unreleased
 
+### Changed
+
+- **The family lives in the spec-family organization, and its packages are
+  `@spec-family/<name>`.** The five repositories moved on 2026-10-26 from
+  DescentVTT to spec-family under the names they had, and the tools are
+  published as `@spec-family/<name>`, their versions continuing: spec-brief
+  0.12.0, spec-graph 0.21.0, spec-guard 0.30.0 and spec-harness 0.22.0 are
+  the first under the new names. The `@descent-vtt` packages are
+  deprecated, and no release under the new scope looks for one. The
+  README, the guides and every link here name the new organization and
+  scope; ADR-0005 records the move, and ADR-0009's user outside the family
+  is outside spec-family.
+  Upgrading: for each tool a project has,
+  `npm uninstall @descent-vtt/<name>` and
+  `npm install --save-dev @spec-family/<name>`; then `@spec-family/` in
+  place of `@descent-vtt/` in every command, CI job and MCP configuration
+  copied from the guides.
+
 ### Security
 
 - **Every command in the guides gives `npx` the package's full name.** The

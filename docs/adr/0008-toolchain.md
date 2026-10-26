@@ -65,7 +65,7 @@ release there is. Two pull requests there, #6214 and #6220, give the runner
 the separator of the vitest it finds; neither has a maintainer's review, and
 neither is merged or released. spec-guard met the symptom on 2026-09-07 and
 pinned vitest then.
-[Its ADR-0003](https://github.com/DescentVTT/spec-guard/blob/main/docs/adr/0003-mutation-testing.md)
+[Its ADR-0003](https://github.com/spec-family/spec-guard/blob/main/docs/adr/0003-mutation-testing.md)
 has the evidence: over one function, the runner on vitest 4 and Stryker's
 `command` runner both killing five mutants of eight, and over the whole
 source, 3.54% on vitest 5.
@@ -156,7 +156,7 @@ pull request and takes about nine minutes:
    - No mutant in the merged report is survived, covered and untested:
 
      ```bash
-     gh run download <run> --repo DescentVTT/spec-core --name mutation --dir reports/lift
+     gh run download <run> --repo spec-family/spec-core --name mutation --dir reports/lift
      node -e "const r=JSON.parse(require('node:fs').readFileSync('reports/lift/mutation.json','utf8'));let n=0;for(const f of Object.values(r.files))for(const m of f.mutants)if(m.status==='Survived'&&(m.coveredBy??[]).length>0&&(m.testsCompleted??0)===0)n+=1;console.log(n)"
      ```
 

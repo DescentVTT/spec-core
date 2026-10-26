@@ -1,7 +1,7 @@
 /**
  * A command names the package it runs.
  *
- * The tools are published as `@descent-vtt/<name>` and each installs a
+ * The tools are published as `@spec-family/<name>` and each installs a
  * command called `<name>`. Without the scope the names are not the family's:
  * on npm `spec-harness` is another publisher's package, and the other four
  * belonged to nobody on 2026-10-07. `npx <name>` runs the project's install
@@ -154,21 +154,23 @@ describe('reading a line for a bare name behind a runner', () => {
   });
 
   it.each([
+    ['npx --no-install @spec-family/spec-guard "docs/**/*.md"'],
+    ['npx @spec-family/spec-guard@0.19.0 --verbose'],
+    ['npm exec --no -- @spec-family/spec-brief lint'],
+    ['Run `npx --no-install @spec-family/spec-brief lint`.'],
+    ['"command": "npx",\n"args": ["--no-install", "@spec-family/spec-guard", "mcp"]'],
+    // A name under any scope is not the bare name, the scope the family left on 2026-10-26 among them.
     ['npx --no-install @descent-vtt/spec-guard "docs/**/*.md"'],
-    ['npx @descent-vtt/spec-guard@0.19.0 --verbose'],
-    ['npm exec --no -- @descent-vtt/spec-brief lint'],
-    ['Run `npx --no-install @descent-vtt/spec-brief lint`.'],
-    ['"command": "npx",\n"args": ["--no-install", "@descent-vtt/spec-guard", "mcp"]'],
     // The package is named, and the word after it is a command inside it.
-    ['npx --package=@descent-vtt/spec-guard spec-guard --version'],
-    ['npx -p @descent-vtt/spec-guard spec-guard --version'],
+    ['npx --package=@spec-family/spec-guard spec-guard --version'],
+    ['npx -p @spec-family/spec-guard spec-guard --version'],
     // A string for the shell: npm fetches nothing for a word in it.
     ['npx -c "spec-guard --version"'],
     // Not a runner: nothing here fetches by the command's name.
-    ['npm install --save-dev @descent-vtt/spec-guard'],
+    ['npm install --save-dev @spec-family/spec-guard'],
     ['npm run selfcheck'],
     ['"specs": "spec-guard --format github"'],
-    ['node node_modules/@descent-vtt/spec-guard/bin/spec-guard.js'],
+    ['node node_modules/@spec-family/spec-guard/bin/spec-guard.js'],
     ['pnpm exec spec-guard'],
     // Another command, with the name further along.
     ['npx stryker run --mutate src/spec-guard.ts'],
@@ -251,7 +253,7 @@ describe('the commands this repository writes', () => {
       ]),
     );
     // The guides are where the commands are: each is seen, in the form the rule asks for.
-    const asked = (file: string): number => read(file).match(/npx --no-install @descent-vtt\/spec-(?:brief|graph|guard|harness)\b/g)?.length ?? 0;
+    const asked = (file: string): number => read(file).match(/npx --no-install @spec-family\/spec-(?:brief|graph|guard|harness)\b/g)?.length ?? 0;
     expect(asked('docs/adopting.md')).toBeGreaterThanOrEqual(15);
     expect(asked('docs/tutorial.md')).toBeGreaterThanOrEqual(35);
   });
@@ -273,8 +275,8 @@ describe('the commands this repository writes', () => {
       // As a reader sees it: a sentence is one line, wherever the file wraps it.
       const section = (/^## Names$([\s\S]*?)^## /m.exec(read(file))?.[1] ?? '').replace(/\s+/g, ' ');
       expect(section, file).toContain('The same names without the scope are not this project.');
-      expect(section, file).toContain('`npx --no-install @descent-vtt/spec-guard`');
-      expect(section, file).toContain('`npx @descent-vtt/spec-guard`');
+      expect(section, file).toContain('`npx --no-install @spec-family/spec-guard`');
+      expect(section, file).toContain('`npx @spec-family/spec-guard`');
     }
   });
 });

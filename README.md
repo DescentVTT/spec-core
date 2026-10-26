@@ -16,10 +16,10 @@ things only a person should.
 
 | Tool | The question it answers | Start with |
 | --- | --- | --- |
-| [spec-brief](https://github.com/DescentVTT/spec-brief) | Is this round's contract complete? Can these rounds run in parallel without writing the same file? Is this one really done? | `lint`, `matrix`, `schedule`, `archive` |
-| [spec-graph](https://github.com/DescentVTT/spec-graph) | Do the documents agree with each other - references, lifecycles, open items handed to documents that no longer hold? | `check` |
-| [spec-guard](https://github.com/DescentVTT/spec-guard) | Does the code do what the documents assert, and can each assertion actually fail? | `spec-guard`, `query`, `prove` |
-| [spec-harness](https://github.com/DescentVTT/spec-harness) | What does an agent need to start this round, may it touch this file, did it stay inside the lines, and who ruled on the exceptions? | `init`, `context`, `guard`, `audit` |
+| [spec-brief](https://github.com/spec-family/spec-brief) | Is this round's contract complete? Can these rounds run in parallel without writing the same file? Is this one really done? | `lint`, `matrix`, `schedule`, `archive` |
+| [spec-graph](https://github.com/spec-family/spec-graph) | Do the documents agree with each other - references, lifecycles, open items handed to documents that no longer hold? | `check` |
+| [spec-guard](https://github.com/spec-family/spec-guard) | Does the code do what the documents assert, and can each assertion actually fail? | `spec-guard`, `query`, `prove` |
+| [spec-harness](https://github.com/spec-family/spec-harness) | What does an agent need to start this round, may it touch this file, did it stay inside the lines, and who ruled on the exceptions? | `init`, `context`, `guard`, `audit` |
 
 ```text
           goal ─▶ agent drafts briefs ─▶ spec-brief lint / schedule ─▶ person approves
@@ -69,18 +69,20 @@ Why five tools and not the eleven once planned: [ADR-0006](docs/adr/0006-five-to
 
 ## Names
 
-Each tool is on npm under the `@descent-vtt` scope and installs a command
-named without it: `@descent-vtt/spec-guard` installs `spec-guard`. The same
-names without the scope are not this project. On npm, `spec-harness` is
-another publisher's package, and `spec-brief`, `spec-graph`, `spec-guard` and
-`spec-core` belonged to nobody on 2026-10-07: whoever registers one decides
-what it runs. spec-core itself is published under no name; it reaches a tool
-as a copy.
+Each tool is on npm under the `@spec-family` scope and installs a command
+named without it: `@spec-family/spec-guard` installs `spec-guard`. Until
+2026-10-26 the tools were published as `@descent-vtt/<name>`, and
+[Adopting](docs/adopting.md#names) says how a project moves to the new
+names. The same names without the scope are not this project. On npm,
+`spec-harness` is another publisher's package, and `spec-brief`,
+`spec-graph`, `spec-guard` and `spec-core` belonged to nobody on
+2026-10-07: whoever registers one decides what it runs. spec-core itself is
+published under no name; it reaches a tool as a copy.
 
 `npx` fetches and runs the package of whatever name it is given when the
 project has none installed, so the family always gives it the full one:
-`npx --no-install @descent-vtt/spec-guard` in a project that installed the
-tool, `npx @descent-vtt/spec-guard` where nothing is installed.
+`npx --no-install @spec-family/spec-guard` in a project that installed the
+tool, `npx @spec-family/spec-guard` where nothing is installed.
 [Adopting](docs/adopting.md#names) has the reasons, and what was measured
 ([ADR-0005](docs/adr/0005-the-family-contract.md#names)).
 

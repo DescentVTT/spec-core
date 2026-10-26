@@ -158,10 +158,10 @@ tool's CLAUDE.md can point.
   Each refusal is input refused that was accepted, a minor release
   ([ADR-0009](0009-versions-before-1-0.md)), listed under **Changed** with
   what to do on upgrading. The tools' pull requests:
-  DescentVTT/spec-brief#50 for `SOURCE_DATE_EPOCH`, and from a branch named
+  spec-family/spec-brief#50 for `SOURCE_DATE_EPOCH`, and from a branch named
   `fix/an-input-that-names-nothing-is-refused` in each,
-  DescentVTT/spec-brief#51, DescentVTT/spec-guard#45 and
-  DescentVTT/spec-graph#77. Each tool names, in its CHANGELOG, the release
+  spec-family/spec-brief#51, spec-family/spec-guard#45 and
+  spec-family/spec-graph#77. Each tool names, in its CHANGELOG, the release
   that first refuses.
 
   *Amended 2026-10-11*: three readings of that rule, from the releases
@@ -177,7 +177,7 @@ tool's CLAUDE.md can point.
   `--allow-empty` lets a run, `prove` and `impact` through, and the pattern
   is still named; a session that waits for files, `--watch` and the
   server, carries on and says which pattern it is; and a document a script
-  reads carries the patterns (DescentVTT/spec-guard#48). spec-graph says a
+  reads carries the patterns (spec-family/spec-guard#48). spec-graph says a
   `--family` that has no document, beside ones that have, with a note, and
   goes on; spec-guard's `cites` reads a pattern that matches nothing as it
   did. Whether those two refuse is not decided here.
@@ -193,15 +193,15 @@ tool's CLAUDE.md can point.
   nothing and opens no configuration. A script passes such an option to
   every command it runs. Two things of which one would go unread are
   refused together: `--config` beside `--no-config`, and an argument beside
-  the option that names the same thing (DescentVTT/spec-brief#55,
-  DescentVTT/spec-harness#80).
+  the option that names the same thing (spec-family/spec-brief#55,
+  spec-family/spec-harness#80).
 
   **`FORCE_COLOR=false` is off.** The list above had `FORCE_COLOR=0` off
   and any other value on, and `false` forced colour in spec-brief,
   spec-graph and spec-guard, into a pipe too. It is off for exactly `0` and
   exactly `false`, on a terminal too; empty is as unset; any other value
-  forces colour (DescentVTT/spec-brief#55, DescentVTT/spec-graph#81,
-  DescentVTT/spec-guard#48). That is not Node's reading, and is not meant
+  forces colour (spec-family/spec-brief#55, spec-family/spec-graph#81,
+  spec-family/spec-guard#48). That is not Node's reading, and is not meant
   to be. On Node 24.18.1 `getColorDepth` gives colour for `1`, `true`, `2`,
   `3` and the empty string, and none for any other value, `FALSE`, `no`
   and `yes` among them; and with `FORCE_COLOR=1` beside `NO_COLOR=1` it
@@ -220,7 +220,7 @@ tool's CLAUDE.md can point.
   matched at all. Each pattern is held to what the list is held to, by the
   command's own rule: where `cites` is given its families by name, no spec
   at all is no failure, and one pattern of several is named and no more
-  (DescentVTT/spec-guard#51). spec-graph's `--family` is as it was.
+  (spec-family/spec-guard#51). spec-graph's `--family` is as it was.
 
   **A hook says what is wrong with its own line with `1`.** "A hook is no
   exception", above, is said of a write the guard could not check, and
@@ -228,8 +228,8 @@ tool's CLAUDE.md can point.
   line it cannot read, a `--root` on it that is no directory - is one line
   on stderr and exit `1`, and holds no write. That line is in a settings
   file, and `2` from it holds every write of the session, the one that
-  mends the line among them (DescentVTT/spec-harness#80,
-  DescentVTT/spec-harness#84). A brief the line names that is not one is a
+  mends the line among them (spec-family/spec-harness#80,
+  spec-family/spec-harness#84). A brief the line names that is not one is a
   write the guard cannot check, and is `2` as before.
 
   **`TERM` is no sign of a terminal that draws.** A tool whose report has
@@ -239,7 +239,7 @@ tool's CLAUDE.md can point.
   Cygwin and MSYS2 runtimes for every program built on them, by the version
   of Windows and not by what the output is drawn on; spec-guard's ADR-0014
   has the sources as read. spec-graph read it so already, and spec-guard
-  does from 0.23.0 (DescentVTT/spec-guard#52). It is `TERM=dumb`, for
+  does from 0.23.0 (spec-family/spec-guard#52). It is `TERM=dumb`, for
   colour, that the tools still read.
 
   *Amended 2026-10-12*, from the releases after those:
@@ -255,7 +255,7 @@ tool's CLAUDE.md can point.
   where it also leaves out a family the documents do belong to, `RFCS`
   written for `RFC`: the same corpus is exit `1` with no list and was exit
   `0` with that one. There the check stops, exit `2`, and names both, from
-  0.15.0 (DescentVTT/spec-graph#86). A refusal follows what an input
+  0.15.0 (spec-family/spec-graph#86). A refusal follows what an input
   costs the answer, not only that it names nothing.
 
   **The marks of a report are asked for one way.** `--ascii` draws the
@@ -266,7 +266,7 @@ tool's CLAUDE.md can point.
   itself. A command that draws no mark takes `--ascii`, which is true of
   what it writes, and refuses `--no-ascii`, which is not, as each takes
   `--no-color` and refuses `--color`; the two together are refused
-  (DescentVTT/spec-graph#85, DescentVTT/spec-guard#55).
+  (spec-family/spec-graph#85, spec-family/spec-guard#55).
 
   *Amended again 2026-10-12*, from the releases after those:
 
@@ -281,7 +281,7 @@ tool's CLAUDE.md can point.
   two went unread with no word of it, which is what the rule above
   refuses. Each pair is exit `2` and one line that names both, in either
   order, from spec-graph 0.16.0 and spec-guard 0.25.0
-  (DescentVTT/spec-graph#89, DescentVTT/spec-guard#57). spec-brief refused
+  (spec-family/spec-graph#89, spec-family/spec-guard#57). spec-brief refused
   its two pairs already, and spec-harness has no option with an opposite.
   The same option twice is that option once, and an opposite alone wins
   over a configuration, the environment and the terminal as before.
@@ -293,7 +293,7 @@ tool's CLAUDE.md can point.
   two, the later was read and the earlier went unread, with no word of it,
   in spec-brief and spec-harness: `--root nowhere --root .` ran in `.`.
   spec-graph 0.17.0 and spec-guard 0.26.0 refuse the two
-  (DescentVTT/spec-graph#94, DescentVTT/spec-guard#61), and so does every
+  (spec-family/spec-graph#94, spec-family/spec-guard#61), and so does every
   tool: exit `2`, one line that names both. Two values are compared as each
   is read, not as it is written, so `--root .` beside `--root ./` names one
   directory, asks one thing and is taken once, as in spec-guard; spec-graph
@@ -305,8 +305,8 @@ tool's CLAUDE.md can point.
   exit `2`, so a line that is wrong in any other way is refused there too.
   spec-brief and spec-graph answered `--help` or `--version` instead of
   every refusal they made of a line after reading it, `--root a --root b
-  --help` among them, as measured for DescentVTT/spec-brief#67 and
-  DescentVTT/spec-graph#99; this amendment said at first that spec-graph
+  --help` among them, as measured for spec-family/spec-brief#67 and
+  spec-family/spec-graph#99; this amendment said at first that spec-graph
   did so only for the refusals it added in 0.15.0 to 0.17.0, which a
   measurement of the older ones showed was not so. And `--help` beside
   `--version` asks for two answers of which one would go unread: spec-brief
@@ -376,6 +376,56 @@ tool's CLAUDE.md can point.
   name behind `npx`, `npm exec` or another package manager's equivalent; the
   few lines that show the bare form as what not to write say so with a
   `bare-name:` comment above them.
+- *Amended 2026-10-26*: **the family lives in the spec-family organization,
+  and its packages are `@spec-family/<name>`.** On 2026-10-26 the five
+  repositories moved from the GitHub organization DescentVTT to
+  spec-family, under the names they had: `spec-family/spec-core`,
+  `spec-family/spec-brief` and so on. The four tools are published as
+  `@spec-family/spec-brief`, `@spec-family/spec-graph`,
+  `@spec-family/spec-guard` and `@spec-family/spec-harness`, and each
+  installs the command it did. spec-core is still published under no name;
+  its `package.json` calls it `@spec-family/spec-core`, so the subpath
+  ADR-0001 gives as an example is `@spec-family/spec-core/pattern`.
+
+  The family is to be shown to people who have not met it, and a home
+  named for a tabletop project read as unrelated to it. Moving was cheapest
+  then: no stars, no forks, and one known user outside the family, whom
+  the maintainer told what to change.
+
+  Versions continue under the new names. spec-brief 0.12.0, spec-graph
+  0.21.0, spec-guard 0.30.0 and spec-harness 0.22.0 are the first releases
+  under them, after 0.11.0, 0.20.0, 0.29.0 and 0.21.0 under `@descent-vtt`,
+  and each tool's CHANGELOG reads on from its last release under the old
+  name. The `@descent-vtt` packages are deprecated, each with a message
+  that names its new package, and none is unpublished. npm's *Deprecating
+  and undeprecating packages or package versions* (docs.npmjs.com, read
+  2026-10-26) says a deprecated package prints its message when a user
+  installs it, and that unpublishing is what removes a package from the
+  registry; it follows that a project that pins an old release still
+  installs it, with the message as a warning.
+
+  No release under the new scope looks for, installs, names or documents
+  an `@descent-vtt` package: a sibling, an install hint, a hook's line or a
+  plugin is found under `@spec-family` or not at all. A project moves by
+  uninstalling each `@descent-vtt/<name>`, installing `@spec-family/<name>`
+  and writing the new name wherever it named the old one. The rule of
+  2026-10-07 holds under the new name: wherever the family writes a
+  command for `npx` or `npm exec`, it writes
+  `npx --no-install @spec-family/<name>` where a project has installed the
+  tool and `npx @spec-family/<name>` where nothing is installed, and the
+  names without the scope are still not the family's.
+
+  History keeps the old names as written: a CHANGELOG entry that records a
+  change made under them, a released version's or one of spec-core's, which
+  has no versions, and a record or an amendment in an ADR that says what
+  was so when it was written, such as the amendment of 2026-10-07 or a
+  package named `@descent-vtt/spec-guard` at 0.17.0. A link, and a
+  reference to a pull request, is a pointer and names `spec-family`:
+  GitHub's *Transferring a repository* (docs.github.com, *What's
+  transferred with a repository?*, read 2026-10-26) redirects every link
+  to a repository's previous location to its new one, and deletes those
+  redirects for good when a repository or a fork is made at the previous
+  location.
 
 ### Findings and output
 
